@@ -1,5 +1,5 @@
-from Algorithms.AlgorithmWrapper import AbstractAgent
-from Algorithms.Graph import Graph
+from Agents.AbstractAgent import AbstractAgent
+from Agents.MCGS.Graph import Graph
 from Utils.Logger import Logger
 
 import numpy as np
@@ -26,15 +26,14 @@ class Node:
     def uct_value(self):
 
         c = 0.0
-        #if self.is_leaf:
-        #    return 1
-        #else:
-        mean = self.total_value / self.visits
         ucb = 0 #c * sqrt(log(self.parent.visits + 1) / self.visits)
-        return mean + ucb
+        return self.value() + ucb
 
     def value(self):
-        return self.total_value / self.visits
+        if self.visits == 0:
+            return 0
+        else:
+            return self.total_value / self.visits
 
     def trajectory_from_node(self, node):
 
@@ -102,6 +101,7 @@ class MCGSAgent(AbstractAgent):
 
         self.check_paths()
 
+        #iterations = range(self.episodes)
         iterations = trange(self.episodes, leave=True)
         iterations.set_description(f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
 
@@ -161,8 +161,11 @@ class MCGSAgent(AbstractAgent):
                 else:
                     child = Node(ID=current_observation, parent=node, is_leaf=True, done=done, action=a, reward=0, visits=0)
                     self.graph.add_node(child)
-                    self.graph.add_to_frontier(child)
-                    new_nodes.append(child)
+
+                    # add to the frontier if it's not Done node
+                    if child.done is False:
+                        self.graph.add_to_frontier(child)
+                        new_nodes.append(child)
 
                     self.node_counter += 1
 
@@ -241,6 +244,7 @@ class MCGSAgent(AbstractAgent):
 
         # best_node = children[children_criteria.index(max(children_criteria))]  # pick the best child
         best_node = self.graph.get_best_node(only_reachable=True)
+        print(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
         Logger.log_data(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
 
         while best_node.parent != self.root_node:
@@ -259,11 +263,10 @@ class MCGSAgent(AbstractAgent):
         self.graph.reroute_paths(self.root_node)
 
     def agent_position(self, node):
-        # agent_pos_x = node.id[0]
-        # agent_pos_y = node.id[1]
-        # agent_dir = self.env.agent_rotation_mapper(node.id[2])
-        # return tuple([agent_pos_x, agent_pos_y, agent_dir])
-        return ""
+        agent_pos_x = node.id[0]
+        agent_pos_y = node.id[1]
+        agent_dir = self.env.agent_rotation_mapper(node.id[2])
+        return tuple([agent_pos_x, agent_pos_y, agent_dir])
 
     def info(self):
 

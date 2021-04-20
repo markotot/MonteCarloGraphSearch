@@ -1,5 +1,5 @@
-from Algorithms.AlgorithmWrapper import AbstractAgent
-from Algorithms.Graph import Graph
+from Agents.AbstractAgent import AbstractAgent
+from Agents.MCTS import Graph
 from Utils.Logger import Logger
 from math import sqrt, log
 import numpy as np

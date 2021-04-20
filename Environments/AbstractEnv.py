@@ -27,7 +27,7 @@ class AbstractEnv:
 
     def reset(self):
         self.state = self.env.reset()
-        self.done = False
+        self.done = None
         self.reward = None
         self.info = None
 
@@ -56,10 +56,4 @@ class AbstractEnv:
         raise NotImplementedError
 
     def agent_action_mapper(self, agent_dir):
-        raise NotImplementedError
-
-    def clone_state(self):
-        raise NotImplementedError
-
-    def restore_state(self, state):
         raise NotImplementedError

@@ -120,11 +120,14 @@ class Graph:
         else:
             selectable_nodes = nodes
 
+        flag = 0
         best_node = selectable_nodes[0]
         best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
         for n in selectable_nodes:
-            if best_node_value < n.value() + self.get_edge_info(n.parent, n).reward:
+            selected_node_value = n.value() + self.get_edge_info(n.parent, n).reward
+            if best_node_value < selected_node_value:
                 best_node = n
+                best_node_value = selected_node_value
 
         return best_node
 

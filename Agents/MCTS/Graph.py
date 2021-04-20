@@ -51,6 +51,7 @@ class Graph:
 
     def select_frontier_node(self, noisy=False):
         selectable_nodes = [x for x in self.frontier if x.not_reachable is False]
+
         if len(selectable_nodes) == 0:
             return None
         else:
@@ -67,6 +68,7 @@ class Graph:
                 if n.uct_value() + noise[i] > best_node_value:
                     best_node = n
                     best_node_value = n.uct_value() + noise[i]
+
 
             return best_node
 
