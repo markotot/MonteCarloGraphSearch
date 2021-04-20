@@ -1,1 +1,1 @@
-# MonteCarloGraphSearch
+# Monte Carlo Graph Search
