@@ -1,0 +1,65 @@
+from gym import Env
+
+
+class AbstractEnv:
+    def __init__(self, env: Env):
+
+        self.env = env
+        self.action_space = self.env.action_space
+        self.action = None
+
+        self.state = None
+        self.reward = None
+        self.done = None
+        self.info = None
+
+        self.reset()
+
+    def step(self, action):
+        self.action = action
+        self.state, self.reward, self.done, self.info = self.env.step(self.action)
+        return self.state, self.reward, self.done, self.info
+
+    def random_step(self):
+        self.action = self.action_space.sample()
+        self.state, self.reward, self.done, self.info = self.env.step(self.action)
+        return self.state, self.reward, self.done, self.info
+
+    def reset(self):
+        self.state = self.env.reset()
+        self.done = False
+        self.reward = None
+        self.info = None
+
+    def render(self):
+        self.env.render()
+
+    def get_state(self):
+        return self.state
+
+    def get_done(self):
+        return self.done
+
+    def get_reward(self):
+        return self.reward
+
+    def get_info(self):
+        return self.info
+
+    def get_action_list(self):
+        raise NotImplementedError
+
+    def get_observation(self):
+        raise NotImplementedError
+
+    def agent_rotation_mapper(self, agent_dir):
+        raise NotImplementedError
+
+    def agent_action_mapper(self, agent_dir):
+        raise NotImplementedError
+
+    def clone_state(self):
+        raise NotImplementedError
+
+    def restore_state(self, state):
+        raise NotImplementedError
