@@ -27,7 +27,7 @@ from Utils.Logger import Logger, plot_images
 
 if __name__ == "__main__":
 
-    env = MiniGridEnv('MiniGrid-Empty-16x16-v0')
+    env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
     env.get_action_list()
 
     Logger.setup(path="test")
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     images = [env.render()]
     total_reward = 0
 
-    for i in range(999):
+    for i in range(100):
 
         action = agent.plan(draw_graph=True)
         state, reward, done, info = agent.act(action)
