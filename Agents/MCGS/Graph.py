@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import random
 from Utils.Logger import Logger
 from networkx.drawing.nx_agraph import graphviz_layout
+from Agents.MCGS.StateDatabase import StateDatabase
 
 #Colors:
 # orange    -   standard
@@ -17,6 +18,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 class Graph:
 
     def __init__(self):
+
         self.graph = nx.DiGraph()
         self.frontier = []
 
@@ -49,7 +51,7 @@ class Graph:
     def load_graph(self, path):
         self.graph = nx.readwrite.read_gpickle(path)
 
-    def select_frontier_node(self, noisy=False):
+    def select_frontier_node(self, noisy=False, novelty_factor=0):
         selectable_nodes = [x for x in self.frontier if x.not_reachable is False]
         if len(selectable_nodes) == 0:
             return None
@@ -62,11 +64,11 @@ class Graph:
                 noise = 0
 
             best_node = selectable_nodes[0]
-            best_node_value = selectable_nodes[0].uct_value() + noise[0]
+            best_node_value = best_node.uct_value() + noise[0] + novelty_factor * best_node.novelty_value
             for i, n in enumerate(selectable_nodes):
-                if n.uct_value() + noise[i] > best_node_value:
+                if n.uct_value() + noise[i] + novelty_factor * n.novelty_value > best_node_value:
                     best_node = n
-                    best_node_value = n.uct_value() + noise[i]
+                    best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
 
             return best_node
 

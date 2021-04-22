@@ -31,7 +31,7 @@ if __name__ == "__main__":
     env.get_action_list()
 
     Logger.setup(path="test")
-    agent = MCGSAgent(env, episodes=10, num_rollouts=50, rollout_depth=200)
+    agent = MCGSAgent(env, episodes=10, num_rollouts=40, rollout_depth=50)
 
     print(agent.info())
     images = [env.render()]

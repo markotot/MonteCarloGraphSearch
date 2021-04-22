@@ -1,5 +1,6 @@
 from Agents.AbstractAgent import AbstractAgent
 from Agents.MCGS.Graph import Graph
+from Agents.MCGS.StateDatabase import StateDatabase
 from Utils.Logger import Logger
 
 import numpy as np
@@ -10,7 +11,7 @@ from tqdm import trange
 
 class Node:
 
-    def __init__(self, ID, parent, is_leaf, done, action, reward, visits):
+    def __init__(self, ID, parent, is_leaf, done, action, reward, visits, novelty_value):
 
         self.id = ID
         self.parent = parent
@@ -19,6 +20,8 @@ class Node:
         self.total_value = reward
         self.visits = visits
         self.is_leaf = is_leaf
+
+        self.novelty_value = novelty_value
 
         self.chosen = False
         self.not_reachable = False
@@ -80,6 +83,7 @@ class MCGSAgent(AbstractAgent):
         super().__init__(env)
 
         self.graph = Graph()
+        self.state_database = StateDatabase()
 
         self.node_counter = 0
         self.edge_counter = 0
@@ -88,11 +92,13 @@ class MCGSAgent(AbstractAgent):
         self.num_rollouts = num_rollouts
         self.rollout_depth = rollout_depth
 
-        self.root_node = Node(ID=self.env.get_observation(), parent=None, is_leaf=True, done=False, action=None, reward=0, visits=0)
+        self.root_node = Node(ID=self.env.get_observation(), parent=None, is_leaf=True, done=False,
+                              action=None, reward=0, visits=0, novelty_value=0)
         self.root_node.chosen = True
         self.node_counter += 1
 
-        self.graph.add_node(self.root_node)
+        self.add_node(self.root_node)
+
         self.graph.add_to_frontier(self.root_node)
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
@@ -133,7 +139,7 @@ class MCGSAgent(AbstractAgent):
         if self.root_node.is_leaf:
             return self.root_node
 
-        node = self.graph.select_frontier_node(noisy=True)
+        node = self.graph.select_frontier_node(noisy=True, novelty_factor=0.1)
         if node is None:
             return None
 
@@ -159,8 +165,14 @@ class MCGSAgent(AbstractAgent):
                 if self.graph.has_node(current_observation):
                     child = self.graph.get_node_info(current_observation)
                 else:
-                    child = Node(ID=current_observation, parent=node, is_leaf=True, done=done, action=a, reward=0, visits=0)
-                    self.graph.add_node(child)
+                    child = Node(ID=current_observation, parent=node, is_leaf=True, done=done,
+                                 action=a, reward=0, visits=0,
+                                 novelty_value=self.state_database.calculate_novelty(current_observation))
+
+                    if child.novelty_value > 0:
+                        Logger.log_reroute_data(f"Novel: {current_observation}")
+
+                    self.add_node(child)
 
                     # add to the frontier if it's not Done node
                     if child.done is False:
@@ -207,7 +219,10 @@ class MCGSAgent(AbstractAgent):
         rollout_env = deepcopy(env)
         env.step(node.action)
         for n in range(self.rollout_depth):
-            _, r, done, _ = rollout_env.random_step()
+            state, r, done, _ = rollout_env.random_step()
+            observation = rollout_env.get_observation()
+            if (observation[4] == True):
+                print("Door open")
             cum_reward += r
             if done:
                 break
@@ -276,3 +291,7 @@ class MCGSAgent(AbstractAgent):
         depth = "Depth: " + str(self.rollout_depth)
 
         return [env_name, episodes, rollouts, depth]
+
+    def add_node(self, node):
+        self.graph.add_node(node)
+        self.state_database.update_posterior(node.id)

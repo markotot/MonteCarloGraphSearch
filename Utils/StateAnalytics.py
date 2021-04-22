@@ -1,6 +1,7 @@
 from Agents.MCGS.Graph import Graph
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 
 path = "../graph.gpickle"
 graph = Graph()
@@ -45,5 +46,8 @@ print(f"rotation\t mean:{round(rotation_mean, 2):<6} \t std:{round(rotation_std,
 
 print(f"has_key \t mean:{round(has_key_mean, 2):<6} \t std:{round(has_key_std, 2):<6}"
       f" \t min:{round(has_key_min, 2):<6} \t max:{round(has_key_max, 2):<6}")
+
+plt.show()
+
 
 

@@ -48,9 +48,9 @@ class Logger:
     @staticmethod
     def log_reroute_data(message, time=True):
         if time:
-            Logger.file_graph.write(f"{Logger.time_now()} - {message} \n")
+            Logger.file_reroute.write(f"{Logger.time_now()} - {message} \n")
         else:
-            Logger.file_graph.write(f"{message} \n")
+            Logger.file_reroute.write(f"{message} \n")
 
     @staticmethod
     def close():
