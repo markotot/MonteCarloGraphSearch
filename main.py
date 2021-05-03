@@ -37,8 +37,7 @@ if __name__ == "__main__":
     images = [env.render()]
     total_reward = 0
 
-    for i in range(200):
-
+    for i in range(100):
         action = agent.plan(draw_graph=True)
         state, reward, done, info = agent.act(action)
         images.append(env.render())

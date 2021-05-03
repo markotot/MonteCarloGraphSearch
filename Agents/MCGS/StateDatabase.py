@@ -24,9 +24,9 @@ class StateDatabase:
         if self.rotation[observation[2]] < self.calculate_novelty_threshold() / len(self.rotation):
             novelty[2] = 1
         if self.agent_carry[observation[3]] < self.calculate_novelty_threshold() / len(self.agent_carry):
-            novelty[3] = 5
+            novelty[3] = 1
         if self.door_open[observation[4]] < self.calculate_novelty_threshold() / len(self.door_open):
-            novelty[4] = 10
+            novelty[4] = 1
 
         return np.sum(novelty)
 

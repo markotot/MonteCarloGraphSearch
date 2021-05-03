@@ -99,12 +99,11 @@ class MCGSAgent(AbstractAgent):
 
         self.add_node(self.root_node)
 
-        self.graph.add_to_frontier(self.root_node)
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
 
     def plan(self, draw_graph=True):
-
+        # TODO: optimize dijkstra, do the checks only after a node has been selected for expansion
         self.check_paths()
 
         # iterations = range(self.episodes)
@@ -172,13 +171,7 @@ class MCGSAgent(AbstractAgent):
                                  novelty_value=self.state_database.calculate_novelty(current_observation))
 
                     self.add_node(child)
-
-                    # add to the frontier if it's not Done node
-                    if child.done is False:
-                        self.graph.add_to_frontier(child)
-                        new_nodes.append(child)
-
-                    self.node_counter += 1
+                    new_nodes.append(child)
 
                     Logger.log_graph_data(f"Child: {str(self.agent_position(child)):<12} "
                                           f" Parent: {str(self.agent_position(node)):<12}"
@@ -192,22 +185,22 @@ class MCGSAgent(AbstractAgent):
     def simulation(self, node, env):
 
         rewards = []
-        novelties = dict()
+        paths = []
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for i in range(self.num_rollouts):
                 futures.append(executor.submit(self.rollout, node, env))
 
             for f in concurrent.futures.as_completed(futures):
-                average_reward, rollout_novelties = f.result()
+                average_reward, path = f.result()
                 rewards.append(average_reward)
-                novelties.update(rollout_novelties)
+                paths.append(path)
 
-        return np.mean(rewards), novelties
+        return np.mean(rewards), paths
 
     def rollout(self, node, env):
         cum_reward = 0
-        novelties = dict()
+        path = []
         rollout_env = deepcopy(env)
         env.step(node.action)
 
@@ -217,16 +210,20 @@ class MCGSAgent(AbstractAgent):
             state, r, done, _ = rollout_env.random_step()
             action = rollout_env.action
             observation = rollout_env.get_observation()
-
-            novelty = self.state_database.calculate_novelty(observation)
-            if novelty > 0 and novelty not in novelties and observation != previous_observation:
-                novelties[observation] = (previous_observation, action, r, done)  # add new novelty to dict
             cum_reward += r
+
+            path.append((previous_observation,
+                         observation,
+                         action,
+                         r,
+                         done,
+                         ))
+
             if done:
                 break
             previous_observation = observation
 
-        return cum_reward, novelties
+        return cum_reward, path
 
     def back_propagation(self, node, reward):
 
@@ -237,40 +234,59 @@ class MCGSAgent(AbstractAgent):
             node = node.parent
             y *= y
 
-    def add_novelties_to_graph(self, novelties):
+    def add_novelties_to_graph(self, paths):
 
         # TODO: Make it add more levels of distance, currently it adds a novelty only if parent exists
         #       1) Do it by concatenating all observations during the rollout, and then add them to the graph
-        #       2) Do it by preserving the order of nodes when adding them to novelties
-        for novel_observation in novelties:
+        for path in paths:
+            for idx, step in enumerate(path):
 
-            if self.graph.has_node(novel_observation) is False:
+                observation = step[1]
+                novelty = self.state_database.calculate_novelty(observation)
+                if self.graph.has_node(observation) is False and novelty > 0:  # found a novel observation
 
-                parent_observation, action, reward, done = novelties[novel_observation]
-                if self.graph.has_node(parent_observation):
-                    parent = self.graph.get_node_info(parent_observation)
+                    for i in range(idx):
 
-                    child = Node(ID=novel_observation, parent=parent, is_leaf=True, done=done, action=action,
-                                 reward=reward, visits=0,
-                                 novelty_value=self.state_database.calculate_novelty(novel_observation))
+                        step_i = path[i]
+                        prev_obs_i = step_i[0]
+                        curr_obs_i = step_i[1]
+                        action_i = step_i[2]
+                        reward_i = step_i[3]
+                        done_i = step_i[4]
+                        novelty_i = self.state_database.calculate_novelty(curr_obs_i)
+                        assert(self.graph.has_node(prev_obs_i))
+                        if self.graph.has_node(curr_obs_i) is False:
+                            parent_i = self.graph.get_node_info(prev_obs_i)
 
-                    self.add_node(child)
-                    if child.done is False:
-                        self.graph.add_to_frontier(child)
-                    self.node_counter += 1
+                            child_i = Node(ID=curr_obs_i, parent=parent_i, is_leaf=True, done=done_i, action=action_i,
+                                           reward=reward_i, visits=0,
+                                           novelty_value=novelty_i)
+                            self.add_node(child_i)
+                            edge_i = Edge(ID=self.edge_counter, node_from=parent_i, node_to=child_i,
+                                          action=action_i, reward=reward_i, done=done_i)
+                            self.add_edge(edge_i)
 
-                    edge = Edge(ID=self.edge_counter, node_from=parent, node_to=child, action=action, reward=reward, done=done)
-                    self.add_edge(edge)
+                    previous_observation = step[0]
+                    action = step[2]
+                    reward = step[3]
+                    done = step[4]
 
-                    if child.novelty_value > 0:
-                        Logger.log_reroute_data(f"Novel: {novel_observation}")
-                else:
-                    pass
-                    # TODO: Create parent
-                    #       Add parent to the graph
-                    #       Create child
-                    #       Add child to the graph
-                    #       Add edge between parent and child
+                    #go through the steps and add each one until you reach the novelty
+                    if self.graph.has_node(previous_observation):
+                        parent = self.graph.get_node_info(previous_observation)
+                        child = Node(ID=observation, parent=parent, is_leaf=True, done=done, action=action,
+                                     reward=reward, visits=0,
+                                     novelty_value=self.state_database.calculate_novelty(observation))
+
+                        self.add_node(child)
+
+                        edge = Edge(ID=self.edge_counter, node_from=parent, node_to=child, action=action, reward=reward, done=done)
+                        self.add_edge(edge)
+
+                        if child.novelty_value > 0:
+                            Logger.log_reroute_data(f"Novel: {observation}")
+                    else:
+                        pass
 
     def get_optimal_action(self, node):
 
@@ -329,6 +345,11 @@ class MCGSAgent(AbstractAgent):
 
     def add_node(self, node):
         self.graph.add_node(node)
+
+        if node.done is False:
+            self.graph.add_to_frontier(node)
+        self.node_counter += 1
+
         self.state_database.update_posterior(node.id)
 
     def add_edge(self, edge):
