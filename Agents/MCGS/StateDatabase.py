@@ -11,7 +11,7 @@ class StateDatabase:
         self.door_open = {True: 0, False: 0}
 
         self.total_data_points = 0
-        self.novelty_percentage = 0.5
+        self.novelty_percentage = 0.25
 
     def calculate_novelty(self, observation):
 

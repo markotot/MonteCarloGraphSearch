@@ -224,9 +224,9 @@ class Graph:
             "arrowsize": 10,
         }
 
-        pos = graphviz_layout(self.graph)
-        options = {}
+        pos = graphviz_layout(self.graph, prog='neato')
 
+        options = {}
         options.update(general_options)
         options.update(node_options)
         options.update(edge_options)

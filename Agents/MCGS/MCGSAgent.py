@@ -204,29 +204,36 @@ class MCGSAgent(AbstractAgent):
     def simulation(self, node, env):
 
         rewards = []
+        novelties = set()
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for i in range(self.num_rollouts):
                 futures.append(executor.submit(self.rollout, node, env))
 
             for f in concurrent.futures.as_completed(futures):
-                rewards.append(f.result())
-
-        return np.mean(rewards)
+                average_reward, rollout_novelties = f.result()
+                rewards.append(average_reward)
+                for novelty in rollout_novelties:
+                    novelties.add(novelty)
+        return np.mean(rewards), novelties
 
     def rollout(self, node, env):
         cum_reward = 0
+        novelties = []
         rollout_env = deepcopy(env)
         env.step(node.action)
+        
         for n in range(self.rollout_depth):
             state, r, done, _ = rollout_env.random_step()
             observation = rollout_env.get_observation()
-            if (observation[4] == True):
-                print("Door open")
+            novelty = self.state_database.calculate_novelty(observation)
+            if novelty > 0:
+
+                novelties.append(observation)
             cum_reward += r
             if done:
                 break
-        return cum_reward
+        return cum_reward, novelties
 
     def back_propagation(self, node, reward):
 
