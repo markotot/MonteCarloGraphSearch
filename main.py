@@ -31,13 +31,13 @@ if __name__ == "__main__":
     env.get_action_list()
 
     Logger.setup(path="test")
-    agent = MCGSAgent(env, episodes=10, num_rollouts=40, rollout_depth=50)
+    agent = MCGSAgent(env, episodes=10, num_rollouts=20, rollout_depth=50)
 
     print(agent.info())
     images = [env.render()]
     total_reward = 0
 
-    for i in range(100):
+    for i in range(200):
 
         action = agent.plan(draw_graph=True)
         state, reward, done, info = agent.act(action)

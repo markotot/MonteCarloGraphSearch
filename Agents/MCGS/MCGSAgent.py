@@ -9,6 +9,7 @@ import concurrent.futures
 from copy import deepcopy
 from tqdm import trange
 
+
 class Node:
 
     def __init__(self, ID, parent, is_leaf, done, action, reward, visits, novelty_value):
@@ -29,7 +30,7 @@ class Node:
     def uct_value(self):
 
         c = 0.0
-        ucb = 0 #c * sqrt(log(self.parent.visits + 1) / self.visits)
+        ucb = 0  # c * sqrt(log(self.parent.visits + 1) / self.visits)
         return self.value() + ucb
 
     def value(self):
@@ -65,7 +66,6 @@ class Node:
 class Edge:
 
     def __init__(self, ID, node_from, node_to, action, reward, done):
-
         self.id = ID
         self.node_from = node_from
         self.node_to = node_to
@@ -107,9 +107,10 @@ class MCGSAgent(AbstractAgent):
 
         self.check_paths()
 
-        #iterations = range(self.episodes)
+        # iterations = range(self.episodes)
         iterations = trange(self.episodes, leave=True)
-        iterations.set_description(f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
+        iterations.set_description(
+            f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
 
         for _ in iterations:
 
@@ -122,7 +123,8 @@ class MCGSAgent(AbstractAgent):
                 children = self.expansion(node, selection_env)
 
             for c in children:
-                reward = self.simulation(c, selection_env)
+                reward, novelties = self.simulation(c, selection_env)
+                self.add_novelties_to_graph(novelties)
                 self.back_propagation(c, reward)
 
         if draw_graph:
@@ -169,9 +171,6 @@ class MCGSAgent(AbstractAgent):
                                  action=a, reward=0, visits=0,
                                  novelty_value=self.state_database.calculate_novelty(current_observation))
 
-                    if child.novelty_value > 0:
-                        Logger.log_reroute_data(f"Novel: {current_observation}")
-
                     self.add_node(child)
 
                     # add to the frontier if it's not Done node
@@ -186,25 +185,14 @@ class MCGSAgent(AbstractAgent):
                                           f" Action: {self.env.agent_action_mapper(a):<16}")
 
                 edge = Edge(ID=self.edge_counter, node_from=node, node_to=child, action=a, reward=reward, done=done)
-                if not self.graph.has_edge(edge) or edge.reward > self.graph.get_edge_info(edge.node_from, edge.node_to).total_value:
-
-                    if not self.graph.has_edge(edge):
-                        Logger.log_graph_data(f"New Edge: {str(self.agent_position(edge.node_from)):>12}"
-                                              f" -> {str(self.agent_position(edge.node_to)):<12}"
-                                              f" Action: {self.env.agent_action_mapper(a):<16}")
-                    else:
-                        Logger.log_graph_data(f"Modify Edge: {str(self.agent_position(edge.node_from)):>12}"
-                                              f" -> {str(self.agent_position(edge.node_to)):<12}"
-                                              f" Action: {self.env.agent_action_mapper(a):<16}")
-                    self.graph.add_edge(edge)
-                    self.edge_counter += 1
+                self.add_edge(edge)
 
         return new_nodes
 
     def simulation(self, node, env):
 
         rewards = []
-        novelties = set()
+        novelties = dict()
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for i in range(self.num_rollouts):
@@ -213,26 +201,31 @@ class MCGSAgent(AbstractAgent):
             for f in concurrent.futures.as_completed(futures):
                 average_reward, rollout_novelties = f.result()
                 rewards.append(average_reward)
-                for novelty in rollout_novelties:
-                    novelties.add(novelty)
+                novelties.update(rollout_novelties)
+
         return np.mean(rewards), novelties
 
     def rollout(self, node, env):
         cum_reward = 0
-        novelties = []
+        novelties = dict()
         rollout_env = deepcopy(env)
         env.step(node.action)
-        
-        for n in range(self.rollout_depth):
-            state, r, done, _ = rollout_env.random_step()
-            observation = rollout_env.get_observation()
-            novelty = self.state_database.calculate_novelty(observation)
-            if novelty > 0:
 
-                novelties.append(observation)
+        previous_observation = rollout_env.get_observation()
+        for n in range(self.rollout_depth):
+
+            state, r, done, _ = rollout_env.random_step()
+            action = rollout_env.action
+            observation = rollout_env.get_observation()
+
+            novelty = self.state_database.calculate_novelty(observation)
+            if novelty > 0 and novelty not in novelties and observation != previous_observation:
+                novelties[observation] = (previous_observation, action, r, done)  # add new novelty to dict
             cum_reward += r
             if done:
                 break
+            previous_observation = observation
+
         return cum_reward, novelties
 
     def back_propagation(self, node, reward):
@@ -243,6 +236,41 @@ class MCGSAgent(AbstractAgent):
             node.total_value += reward * y
             node = node.parent
             y *= y
+
+    def add_novelties_to_graph(self, novelties):
+
+        # TODO: Make it add more levels of distance, currently it adds a novelty only if parent exists
+        #       1) Do it by concatenating all observations during the rollout, and then add them to the graph
+        #       2) Do it by preserving the order of nodes when adding them to novelties
+        for novel_observation in novelties:
+
+            if self.graph.has_node(novel_observation) is False:
+
+                parent_observation, action, reward, done = novelties[novel_observation]
+                if self.graph.has_node(parent_observation):
+                    parent = self.graph.get_node_info(parent_observation)
+
+                    child = Node(ID=novel_observation, parent=parent, is_leaf=True, done=done, action=action,
+                                 reward=reward, visits=0,
+                                 novelty_value=self.state_database.calculate_novelty(novel_observation))
+
+                    self.add_node(child)
+                    if child.done is False:
+                        self.graph.add_to_frontier(child)
+                    self.node_counter += 1
+
+                    edge = Edge(ID=self.edge_counter, node_from=parent, node_to=child, action=action, reward=reward, done=done)
+                    self.add_edge(edge)
+
+                    if child.novelty_value > 0:
+                        Logger.log_reroute_data(f"Novel: {novel_observation}")
+                else:
+                    pass
+                    # TODO: Create parent
+                    #       Add parent to the graph
+                    #       Create child
+                    #       Add child to the graph
+                    #       Add edge between parent and child
 
     def get_optimal_action(self, node):
 
@@ -302,3 +330,17 @@ class MCGSAgent(AbstractAgent):
     def add_node(self, node):
         self.graph.add_node(node)
         self.state_database.update_posterior(node.id)
+
+    def add_edge(self, edge):
+        if not self.graph.has_edge(edge):
+
+            if not self.graph.has_edge(edge):
+                Logger.log_graph_data(f"New Edge: {str(self.agent_position(edge.node_from)):>12}"
+                                      f" -> {str(self.agent_position(edge.node_to)):<12}"
+                                      f" Action: {self.env.agent_action_mapper(edge.action):<16}")
+            else:
+                Logger.log_graph_data(f"Modify Edge: {str(self.agent_position(edge.node_from)):>12}"
+                                      f" -> {str(self.agent_position(edge.node_to)):<12}"
+                                      f" Action: {self.env.agent_action_mapper(edge.action):<16}")
+            self.graph.add_edge(edge)
+            self.edge_counter += 1
