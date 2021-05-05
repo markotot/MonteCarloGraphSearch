@@ -39,14 +39,19 @@ class Node:
         else:
             return self.total_value / self.visits
 
-    def trajectory_from_node(self, node):
+    def trajectory_from_root(self, debug=False):
 
         action_trajectory = []
         current_node = self
+
         while current_node.parent is not None:
+            if debug:
+                print(f"Node: {current_node.id} Parent: {current_node.parent.id} Action: {current_node.action}")
             action_trajectory.insert(0, current_node.action)
             current_node = current_node.parent
 
+        if debug:
+            print(action_trajectory)
         return action_trajectory
 
     def reroute(self, path, actions):
@@ -103,8 +108,11 @@ class MCGSAgent(AbstractAgent):
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
 
     def plan(self, draw_graph=True):
+
         # TODO: optimize dijkstra, do the checks only after a node has been selected for expansion
-        self.check_paths()
+        self.graph.set_root(self.root_node)
+        # uncomment to reroute everything every step (useful for drawing a pretty graph)
+        # self.check_paths()
 
         # iterations = range(self.episodes)
         iterations = trange(self.episodes, leave=True)
@@ -144,8 +152,16 @@ class MCGSAgent(AbstractAgent):
         if node is None:
             return None
 
-        for action in node.trajectory_from_node(self.root_node):
+        for action in node.trajectory_from_root():
             env.step(action)
+
+        if node.id != env.get_observation():
+            node.trajectory_from_root(True)
+            print(f"Root.id {self.root_node.id}")
+            print(f"Node.id {node.id}")
+            print(f"Env.obs {env.get_observation()}")
+
+        assert (node.id == env.get_observation())
 
         return node
 
@@ -173,23 +189,23 @@ class MCGSAgent(AbstractAgent):
                     self.add_node(child)
                     new_nodes.append(child)
 
-                    Logger.log_graph_data(f"Child: {str(self.agent_position(child)):<12} "
-                                          f" Parent: {str(self.agent_position(node)):<12}"
-                                          f" Action: {self.env.agent_action_mapper(a):<16}")
-
                 edge = Edge(ID=self.edge_counter, node_from=node, node_to=child, action=a, reward=reward, done=done)
                 self.add_edge(edge)
 
         return new_nodes
 
-    def simulation(self, node, env):
+    def simulation(self, node, env, disable_actions=True):
 
         rewards = []
         paths = []
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for i in range(self.num_rollouts):
-                futures.append(executor.submit(self.rollout, node, env))
+                disabled_actions = []
+                if disable_actions:
+                    if i < self.env.action_space.n:
+                        disabled_actions.append(i)
+                futures.append(executor.submit(self.rollout, node, env, disabled_actions))
 
             for f in concurrent.futures.as_completed(futures):
                 average_reward, path = f.result()
@@ -198,7 +214,7 @@ class MCGSAgent(AbstractAgent):
 
         return np.mean(rewards), paths
 
-    def rollout(self, node, env):
+    def rollout(self, node, env, disabled_actions=[]):
         cum_reward = 0
         path = []
         rollout_env = deepcopy(env)
@@ -207,7 +223,7 @@ class MCGSAgent(AbstractAgent):
         previous_observation = rollout_env.get_observation()
         for n in range(self.rollout_depth):
 
-            state, r, done, _ = rollout_env.random_step()
+            state, r, done, _ = rollout_env.random_step(disabled_actions)
             action = rollout_env.action
             observation = rollout_env.get_observation()
             cum_reward += r
@@ -234,59 +250,37 @@ class MCGSAgent(AbstractAgent):
             node = node.parent
             y *= y
 
-    def add_novelties_to_graph(self, paths):
+    def add_novelties_to_graph(self, paths, only_novel=False):
 
-        # TODO: Make it add more levels of distance, currently it adds a novelty only if parent exists
-        #       1) Do it by concatenating all observations during the rollout, and then add them to the graph
         for path in paths:
             for idx, step in enumerate(path):
 
                 observation = step[1]
                 novelty = self.state_database.calculate_novelty(observation)
-                if self.graph.has_node(observation) is False and novelty > 0:  # found a novel observation
+                if self.graph.has_node(observation) is False and (novelty > 0 or only_novel is False):
 
-                    for i in range(idx):
-
+                    for i in range(idx + 1):
                         step_i = path[i]
-                        prev_obs_i = step_i[0]
-                        curr_obs_i = step_i[1]
-                        action_i = step_i[2]
-                        reward_i = step_i[3]
-                        done_i = step_i[4]
-                        novelty_i = self.state_database.calculate_novelty(curr_obs_i)
-                        assert(self.graph.has_node(prev_obs_i))
-                        if self.graph.has_node(curr_obs_i) is False:
-                            parent_i = self.graph.get_node_info(prev_obs_i)
+                        previous_observation = step_i[0]
+                        current_observation = step_i[1]
+                        action = step_i[2]
+                        reward = step_i[3]
+                        done = step_i[4]
+                        novelty = self.state_database.calculate_novelty(current_observation)
 
-                            child_i = Node(ID=curr_obs_i, parent=parent_i, is_leaf=True, done=done_i, action=action_i,
-                                           reward=reward_i, visits=0,
-                                           novelty_value=novelty_i)
-                            self.add_node(child_i)
-                            edge_i = Edge(ID=self.edge_counter, node_from=parent_i, node_to=child_i,
-                                          action=action_i, reward=reward_i, done=done_i)
-                            self.add_edge(edge_i)
+                        if self.graph.has_node(current_observation) is False:
+                            parent = self.graph.get_node_info(previous_observation)
+                            child = Node(ID=current_observation, parent=parent, is_leaf=True, done=done, action=action,
+                                         reward=reward, visits=0,
+                                         novelty_value=novelty)
+                            self.add_node(child)
+                            edge_i = Edge(ID=self.edge_counter, node_from=parent, node_to=child,
+                                          action=action, reward=reward, done=done)
+                            self.add_edge(edge_i, who="Roll")
 
-                    previous_observation = step[0]
-                    action = step[2]
-                    reward = step[3]
-                    done = step[4]
-
-                    #go through the steps and add each one until you reach the novelty
-                    if self.graph.has_node(previous_observation):
-                        parent = self.graph.get_node_info(previous_observation)
-                        child = Node(ID=observation, parent=parent, is_leaf=True, done=done, action=action,
-                                     reward=reward, visits=0,
-                                     novelty_value=self.state_database.calculate_novelty(observation))
-
-                        self.add_node(child)
-
-                        edge = Edge(ID=self.edge_counter, node_from=parent, node_to=child, action=action, reward=reward, done=done)
-                        self.add_edge(edge)
-
-                        if child.novelty_value > 0:
-                            Logger.log_reroute_data(f"Novel: {observation}")
-                    else:
-                        pass
+                    if novelty > 0:
+                        node = self.graph.get_node_info(observation)
+                        Logger.log_reroute_data(f"Novel: {self.agent_position(node)}")
 
     def get_optimal_action(self, node):
 
@@ -326,13 +320,16 @@ class MCGSAgent(AbstractAgent):
         return best_node, edge.action
 
     def check_paths(self):
+
         self.graph.reroute_paths(self.root_node)
 
     def agent_position(self, node):
         agent_pos_x = node.id[0]
         agent_pos_y = node.id[1]
         agent_dir = self.env.agent_rotation_mapper(node.id[2])
-        return tuple([agent_pos_x, agent_pos_y, agent_dir])
+        agent_has_key = node.id[3]
+        agent_door_open = node.id[4]
+        return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_has_key, agent_door_open])
 
     def info(self):
 
@@ -350,13 +347,18 @@ class MCGSAgent(AbstractAgent):
             self.graph.add_to_frontier(node)
         self.node_counter += 1
 
+        if node.parent is not None:
+            Logger.log_graph_data(f"Child: {str(self.agent_position(node)):<12} "
+                                  f" Parent: {str(self.agent_position(node.parent)):<12}"
+                                  f" Action: {self.env.agent_action_mapper(node.action):<16}")
+
         self.state_database.update_posterior(node.id)
 
-    def add_edge(self, edge):
+    def add_edge(self, edge, who="Expansion"):
         if not self.graph.has_edge(edge):
 
             if not self.graph.has_edge(edge):
-                Logger.log_graph_data(f"New Edge: {str(self.agent_position(edge.node_from)):>12}"
+                Logger.log_graph_data(f"{who} - New Edge: {str(self.agent_position(edge.node_from)):>12}"
                                       f" -> {str(self.agent_position(edge.node_to)):<12}"
                                       f" Action: {self.env.agent_action_mapper(edge.action):<16}")
             else:

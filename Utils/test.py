@@ -10,16 +10,11 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
-path = "../graph.gpickle"
-graph = Graph()
-graph.load_graph(path)
-print("Oy")
-pos = graphviz_layout(graph.graph, prog='dot')
+graph = nx.fast_gnp_random_graph(1000, 0.05, seed=None, directed=True)
+
+pos = graphviz_layout(graph, prog='neato')
 
 
-dpi = 96
-plt.figure(1, figsize=(1024/dpi, 768/dpi))
-print("1y")
-nx.draw(graph.graph, pos)
-print("2y")
-plt.show()
+for node in graph.nodes:
+    for node_2 in graph.nodes:
+        nx.has_path(graph, node, node_2)

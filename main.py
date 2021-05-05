@@ -10,6 +10,9 @@ from Utils.Logger import Logger, plot_images
 # TODO: BUGS -
 #  1) should be fixed --- fricking OOP --- action for step is sometimes None during rollout, very rarely but can happen (16x16, episodes=5, num_rollouts=24, rollout_depth=200)
 #  2) should be fixed - children_criteria is empty in self.select_child(node, criteria_"value") (16x16, episodes=5, num_rollouts=24, rollout_depth=200)
+#  3) if something is marked as not reachable, it will never become reachable again (can be fixed, but takes a lot of computation)
+#  4) optimize route after rollouts
+#  5) !! important !! Action trajectory doesn't reflect the real state
 
 # TODO: Improvements
 #  1) get_optimal_action() based on the best node, not just the best child
@@ -25,6 +28,9 @@ from Utils.Logger import Logger, plot_images
 #  3) partial observable env not supported, states are fully representative
 #  4) env isn't perfect for rollouts - more moves you make in the env, less the reward - meaning later rollouts give less reward
 
+# TODO: Optimize select_frontier_node in Graph.py
+
+
 if __name__ == "__main__":
 
     env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
@@ -37,8 +43,10 @@ if __name__ == "__main__":
     images = [env.render()]
     total_reward = 0
 
-    for i in range(100):
-        action = agent.plan(draw_graph=True)
+    plt.imshow(images[0])
+    plt.show()
+    for i in range(200):
+        action = agent.plan(draw_graph=False)
         state, reward, done, info = agent.act(action)
         images.append(env.render())
         total_reward += reward

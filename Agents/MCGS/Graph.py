@@ -52,29 +52,53 @@ class Graph:
         self.graph = nx.readwrite.read_gpickle(path)
 
     def select_frontier_node(self, noisy=False, novelty_factor=0):
-        selectable_nodes = [x for x in self.frontier if x.not_reachable is False]
-        if len(selectable_nodes) == 0:
-            return None
-        else:
 
-            if noisy:
-                amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
-                noise = np.random.normal(0, amplitude, len(selectable_nodes))
+        temp = 0
+        while True:
+            selectable_nodes = [x for x in self.frontier if x.not_reachable is False]
+            if len(selectable_nodes) == 0:
+                return None
             else:
-                noise = 0
 
-            best_node = selectable_nodes[0]
-            best_node_value = best_node.uct_value() + noise[0] + novelty_factor * best_node.novelty_value
-            for i, n in enumerate(selectable_nodes):
-                if n.uct_value() + noise[i] + novelty_factor * n.novelty_value > best_node_value:
-                    best_node = n
-                    best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
+                if noisy:
+                    amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
+                    noise = np.random.normal(0, amplitude, len(selectable_nodes))
+                else:
+                    noise = 0
 
-            return best_node
+                best_node = selectable_nodes[0]
+                best_node_value = best_node.uct_value() + noise[0] + novelty_factor * best_node.novelty_value
+                for i, n in enumerate(selectable_nodes):
+                    if n.uct_value() + noise[i] + novelty_factor * n.novelty_value > best_node_value:
+                        best_node = n
+                        best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
 
+                if self.has_path(self.root_node, best_node):
+                    self.reroute_path(self.root_node, best_node)
+                    return best_node
+                else:
+                    best_node.not_reachable = True
+                    temp += 1
+                    if temp % 1000 == 0:
+                        print(f"Possible inf-loop i={temp} len(selectable_nodes{len(selectable_nodes)}")
+
+    def set_root(self, root_node):
+
+        root_children = []
+        if self.root_node is not None:
+            root_children = list(self.graph.successors(self.root_node.id))
+            root_children.append(self.root_node.id)
+
+        self.root_node = root_node
+        for node_id in root_children:
+            node = self.get_node_info(node_id)
+            if self.has_path(self.root_node, node):
+                self.reroute_path(self.root_node, node)
+                node.not_reachable = False
+            else:
+                node.not_reachable = True
 
     def reroute_paths(self, root_node):
-        self.root_node = root_node
 
         for node_id, node in self.graph.nodes.data('info'):
             if root_node.id != node_id:
@@ -122,7 +146,6 @@ class Graph:
         else:
             selectable_nodes = nodes
 
-        flag = 0
         best_node = selectable_nodes[0]
         best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
         for n in selectable_nodes:
@@ -170,12 +193,13 @@ class Graph:
 
         for node in nodes_info.values():
 
-            if node.is_leaf:
-                value_map[node.id] = str(round(node.value(), 2))
-                node_size_map.append(30)
+            #value_map[node.id] = str(round(node.value(), 2))
+            if (node.novelty_value == 0 and node.value() == 0) or node not in self.frontier:
+                value_map[node.id] = ""
             else:
-                value_map[node.id] = str(round(node.value(), 2))
-                node_size_map.append(30)
+                value_map[node.id] = str(round(node.novelty_value + node.value(), 2))
+            node_size_map.append(30)
+
 
             if node == self.root_node:
                 node_color_map.append('blue')

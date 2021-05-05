@@ -44,7 +44,6 @@ class Logger:
             Logger.file_graph.write(f"{message} \n")
 
 
-    # currently not used
     @staticmethod
     def log_reroute_data(message, time=True):
         if time:
