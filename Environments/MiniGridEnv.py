@@ -55,7 +55,8 @@ class MiniGridEnv(AbstractEnv):
         agent_dir = self.env.agent_dir
         agent_carry = None if self.env.carrying is None else self.env.carrying.type
 
-        doors = [tile.is_open for tile in self.env.grid.grid if tile is not None and tile.type == "door"]
+        doors_open = [tile.is_open for tile in self.env.grid.grid if tile is not None and tile.type == "door"]
+        doors_locked = [tile.is_locked for tile in self.env.grid.grid if tile is not None and tile.type == "door"]
         grid = [('empty' if tile is None else tile.type) for tile in self.env.grid.grid]
 
-        return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_carry] + doors + grid)
+        return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_carry] + doors_open + doors_locked + grid)

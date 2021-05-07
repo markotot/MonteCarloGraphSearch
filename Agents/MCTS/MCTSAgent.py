@@ -1,5 +1,5 @@
 from Agents.AbstractAgent import AbstractAgent
-from Agents.MCTS import Graph
+from Agents.MCTS.Graph import Graph
 from Utils.Logger import Logger
 from math import sqrt, log
 import numpy as np
@@ -156,7 +156,7 @@ class MCTSAgent(AbstractAgent):
         if criteria == "uct":
             children_criteria = [x.uct_value() for x in children]  # find their uct values
         elif criteria == "value":
-            children_criteria = [(x.total_value / (x.visits + 1) + self.graph.get_edge_info(node, x).total_value) for x in children]  # find their Q values
+            children_criteria = [(x.value / (x.visits + 1) + self.graph.get_edge_info(node, x).reward) for x in children]  # find their Q values
 
 
         child = children[children_criteria.index(max(children_criteria))]  # pick the child with max uct

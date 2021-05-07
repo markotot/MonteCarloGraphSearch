@@ -16,6 +16,9 @@ class Node:
 
         self.id = ID
         self.parent = parent
+
+        if self.parent is not None:
+            Logger.log_reroute_data(f" Ctor\n\tNode: {self.id[0:6]} Parent: {self.parent.id[0:6]}")
         self.done = done
         self.action = action
         self.total_value = reward
@@ -58,9 +61,11 @@ class Node:
         parent_order = list(reversed(path))
         actions_order = list(reversed(actions))
         node = self
-
+        Logger.log_reroute_data(f"Reroute: {self.id[0:5]}")
         for i in range(len(parent_order) - 1):
             node.parent = parent_order[i + 1]
+
+            Logger.log_reroute_data(f"\tNode: {node.id[0:5]} Parent: {node.parent.id[0:5]}")
             node.action = actions_order[i]
             node = parent_order[i + 1]
 
@@ -138,9 +143,10 @@ class MCGSAgent(AbstractAgent):
             self.graph.draw_graph()
 
         action = self.get_optimal_action(self.root_node)
-
+        self.graph.find_reachable()
         Logger.log_data(f"Action: {self.env.agent_action_mapper(action):<16}"
                         f"Current position: {str(self.agent_position(self.root_node)):<12}")
+
         return action
 
     def selection(self, env):
@@ -155,13 +161,7 @@ class MCGSAgent(AbstractAgent):
         for action in node.trajectory_from_root():
             env.step(action)
 
-        if node.id != env.get_observation():
-            node.trajectory_from_root(True)
-            print(f"Root.id {self.root_node.id}")
-            print(f"Node.id {node.id}")
-            print(f"Env.obs {env.get_observation()}")
-
-        assert (node.id == env.get_observation())
+        assert node.id == env.get_observation()
 
         return node
 
@@ -182,6 +182,7 @@ class MCGSAgent(AbstractAgent):
                 if self.graph.has_node(current_observation):
                     child = self.graph.get_node_info(current_observation)
                 else:
+
                     child = Node(ID=current_observation, parent=node, is_leaf=True, done=done,
                                  action=a, reward=0, visits=0,
                                  novelty_value=self.state_database.calculate_novelty(current_observation))
@@ -195,7 +196,6 @@ class MCGSAgent(AbstractAgent):
         return new_nodes
 
     def simulation(self, node, env, disable_actions=True):
-
         rewards = []
         paths = []
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -228,21 +228,14 @@ class MCGSAgent(AbstractAgent):
             observation = rollout_env.get_observation()
             cum_reward += r
 
-            path.append((previous_observation,
-                         observation,
-                         action,
-                         r,
-                         done,
-                         ))
-
+            path.append((previous_observation, observation, action, r, done))
+            previous_observation = observation
             if done:
                 break
-            previous_observation = observation
 
         return cum_reward, path
 
     def back_propagation(self, node, reward):
-
         y = 1
         while node is not None:
             node.visits += 1
@@ -280,7 +273,7 @@ class MCGSAgent(AbstractAgent):
 
                     if novelty > 0:
                         node = self.graph.get_node_info(observation)
-                        Logger.log_reroute_data(f"Novel: {self.agent_position(node)}")
+                        Logger.log_novel_data(f"Novel: {self.agent_position(node)}")
 
     def get_optimal_action(self, node):
 
@@ -329,7 +322,8 @@ class MCGSAgent(AbstractAgent):
         agent_dir = self.env.agent_rotation_mapper(node.id[2])
         agent_has_key = node.id[3]
         agent_door_open = node.id[4]
-        return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_has_key, agent_door_open])
+        agent_door_locked = node.id[5]
+        return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_has_key, agent_door_open, agent_door_locked])
 
     def info(self):
 
@@ -341,29 +335,31 @@ class MCGSAgent(AbstractAgent):
         return [env_name, episodes, rollouts, depth]
 
     def add_node(self, node):
-        self.graph.add_node(node)
 
-        if node.done is False:
-            self.graph.add_to_frontier(node)
-        self.node_counter += 1
+        # redundant, but useful for debugging
+        assert not self.graph.has_node(node)
+        if not self.graph.has_node(node):
+            self.graph.add_node(node)
 
-        if node.parent is not None:
-            Logger.log_graph_data(f"Child: {str(self.agent_position(node)):<12} "
-                                  f" Parent: {str(self.agent_position(node.parent)):<12}"
-                                  f" Action: {self.env.agent_action_mapper(node.action):<16}")
+            if node.done is False:
+                self.graph.add_to_frontier(node)
+            self.node_counter += 1
 
-        self.state_database.update_posterior(node.id)
+            if node.parent is not None:
+                Logger.log_graph_data(f"Child: {str(self.agent_position(node)):<12} "
+                                      f" Parent: {str(self.agent_position(node.parent)):<12}"
+                                      f" Action: {self.env.agent_action_mapper(node.action):<16}")
+
+            self.state_database.update_posterior(node.id)
 
     def add_edge(self, edge, who="Expansion"):
         if not self.graph.has_edge(edge):
 
-            if not self.graph.has_edge(edge):
-                Logger.log_graph_data(f"{who} - New Edge: {str(self.agent_position(edge.node_from)):>12}"
-                                      f" -> {str(self.agent_position(edge.node_to)):<12}"
-                                      f" Action: {self.env.agent_action_mapper(edge.action):<16}")
-            else:
-                Logger.log_graph_data(f"Modify Edge: {str(self.agent_position(edge.node_from)):>12}"
-                                      f" -> {str(self.agent_position(edge.node_to)):<12}"
-                                      f" Action: {self.env.agent_action_mapper(edge.action):<16}")
             self.graph.add_edge(edge)
             self.edge_counter += 1
+
+            Logger.log_graph_data(f"{who} - New Edge: {str(self.agent_position(edge.node_from)):>12}"
+                                  f" -> {str(self.agent_position(edge.node_to)):<12}"
+                                  f" Action: {self.env.agent_action_mapper(edge.action):<16}")
+
+

@@ -12,7 +12,8 @@ from Utils.Logger import Logger, plot_images
 #  2) should be fixed - children_criteria is empty in self.select_child(node, criteria_"value") (16x16, episodes=5, num_rollouts=24, rollout_depth=200)
 #  3) if something is marked as not reachable, it will never become reachable again (can be fixed, but takes a lot of computation)
 #  4) optimize route after rollouts
-#  5) !! important !! Action trajectory doesn't reflect the real state
+#  5) should be fixed - !! important !! Action trajectory doesn't reflect the real state
+#  6) circular parenting, infinite loop in backprop
 
 # TODO: Improvements
 #  1) get_optimal_action() based on the best node, not just the best child
@@ -29,6 +30,8 @@ from Utils.Logger import Logger, plot_images
 #  4) env isn't perfect for rollouts - more moves you make in the env, less the reward - meaning later rollouts give less reward
 
 # TODO: Optimize select_frontier_node in Graph.py
+#       Include BFS in code (already written)
+#       Do a rollout from the root on every step and then reroute the target state
 
 
 if __name__ == "__main__":

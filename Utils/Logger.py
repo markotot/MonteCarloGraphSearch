@@ -11,6 +11,7 @@ class Logger:
     file = "test_data.txt"
     file_graph = "test_graph.txt"
     file_reroute = "test_reroute.txt"
+    file_novel = "test_novel.txt"
 
     @staticmethod
     def setup(path):
@@ -18,11 +19,13 @@ class Logger:
         Logger.file = open(path + "_data.txt", mode='w', buffering=1)
         Logger.file_graph = open(path + "_graph.txt", mode='w', buffering=1)
         Logger.file_reroute = open(path + "_reroute.txt", mode='w', buffering=1)
+        Logger.file_novel = open(path + "_novel.txt", mode='w', buffering=1)
 
         dt_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         Logger.file.write(f"Date: {dt_now} \n\n")
         Logger.file_graph.write(f"Date: {dt_now} \n\n")
         Logger.file_reroute.write(f"Date: {dt_now} \n\n")
+        Logger.file_novel.write(f"Date: {dt_now} \n\n")
 
     @staticmethod
     def time_now():
@@ -34,7 +37,6 @@ class Logger:
             Logger.file.write(f"{Logger.time_now()} - {message} \n")
         else:
             Logger.file.write(f"{message} \n")
-            Logger.file
 
     @staticmethod
     def log_graph_data(message, time=True):
@@ -52,10 +54,18 @@ class Logger:
             Logger.file_reroute.write(f"{message} \n")
 
     @staticmethod
+    def log_novel_data(message, time=True):
+        if time:
+            Logger.file_novel.write(f"{Logger.time_now()} - {message} \n")
+        else:
+            Logger.file_novel.write(f"{message} \n")
+
+    @staticmethod
     def close():
         Logger.file.close()
         Logger.file_graph.close()
         Logger.file_reroute.close()
+        Logger.file_novel.close()
 
 
 def plot_images(images, reward):

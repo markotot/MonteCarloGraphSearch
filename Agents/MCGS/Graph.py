@@ -30,10 +30,6 @@ class Graph:
 
     def add_edge(self, edge):
         self.graph.add_edge(edge.node_from.id, edge.node_to.id, info=edge)
-        if edge.node_to.not_reachable:
-            edge.node_to.parent = edge.node_from
-            edge.node_to.action = edge.action
-            edge.node_to.not_reachable = False
 
     def add_to_frontier(self, node):
         self.frontier.append(node)
@@ -79,7 +75,7 @@ class Graph:
                 else:
                     best_node.not_reachable = True
                     temp += 1
-                    if temp % 1000 == 0:
+                    if temp % 100 == 0:
                         print(f"Possible inf-loop i={temp} len(selectable_nodes{len(selectable_nodes)}")
 
     def set_root(self, root_node):
@@ -127,6 +123,9 @@ class Graph:
     def get_node_info(self, id):
         return self.graph.nodes[id]["info"]
 
+    def get_all_nodes_info(self):
+        return list(nx.get_node_attributes(self.graph, 'info').values())
+
     def get_nodes_with_degree(self, degree):
         node_list = []
         for node, out_degree in self.graph.out_degree():
@@ -138,7 +137,7 @@ class Graph:
 
     def get_best_node(self, only_reachable=False):
 
-        nodes = list(nx.get_node_attributes(self.graph, 'info').values())
+        nodes = self.get_all_nodes_info()
         nodes.remove(self.root_node)
 
         if only_reachable:
@@ -147,8 +146,12 @@ class Graph:
             selectable_nodes = nodes
 
         best_node = selectable_nodes[0]
+        assert (best_node.parent is not None)
+        assert (best_node is not None)
         best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
         for n in selectable_nodes:
+            assert(n.parent is not None)
+            assert (n is not None)
             selected_node_value = n.value() + self.get_edge_info(n.parent, n).reward
             if best_node_value < selected_node_value:
                 best_node = n
@@ -264,3 +267,26 @@ class Graph:
 
     def save_graph(self, path):
         nx.readwrite.write_gpickle(self.graph, path + ".gpickle")
+
+    def find_reachable(self):
+
+        all_nodes = self.get_all_nodes_info()
+        for n in all_nodes:
+            pass
+            #n.not_reachable = True
+
+        visited = []
+        queue = []
+        node = self.root_node.id
+
+        visited.append(node)
+        queue.append(node)
+
+        while queue:
+            node = queue.pop(0)
+            node_id = self.get_node_info(node)
+            #self.get_node_info(node).not_reachable = False
+            for child in self.graph.successors(node):
+                if child not in visited:
+                    visited.append(child)
+                    queue.append(child)
