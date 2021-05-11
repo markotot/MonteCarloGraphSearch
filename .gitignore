@@ -149,6 +149,8 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
+
+# Local txt files
 /graph.gpickle
 /test_data.txt
 /test_graph.txt

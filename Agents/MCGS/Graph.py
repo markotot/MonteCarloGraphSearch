@@ -49,50 +49,45 @@ class Graph:
 
     def select_frontier_node(self, noisy=False, novelty_factor=0):
 
-        temp = 0
-        while True:
-            selectable_nodes = [x for x in self.frontier if x.not_reachable is False]
-            if len(selectable_nodes) == 0:
-                return None
+        selectable_nodes = [x for x in self.frontier if x.unreachable is False]
+        if len(selectable_nodes) == 0:
+            return None
+        else:
+
+            if noisy:
+                amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
+                noise = np.random.normal(0, max(amplitude, 0.001), len(selectable_nodes))
             else:
+                noise = 0
 
-                if noisy:
-                    amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
-                    noise = np.random.normal(0, amplitude, len(selectable_nodes))
-                else:
-                    noise = 0
+            best_node = selectable_nodes[0]
+            best_node_value = best_node.uct_value() + noise[0] + novelty_factor * best_node.novelty_value
+            for i, n in enumerate(selectable_nodes):
+                if n.uct_value() + noise[i] + novelty_factor * n.novelty_value > best_node_value:
+                    best_node = n
+                    best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
 
-                best_node = selectable_nodes[0]
-                best_node_value = best_node.uct_value() + noise[0] + novelty_factor * best_node.novelty_value
-                for i, n in enumerate(selectable_nodes):
-                    if n.uct_value() + noise[i] + novelty_factor * n.novelty_value > best_node_value:
-                        best_node = n
-                        best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
+            assert self.has_path(self.root_node, best_node)
+            return best_node
+            # if self.has_path(self.root_node, best_node):
+            #    pass
+            #    #self.reroute_path(self.root_node, best_node)
+            #else:
+            #    best_node.unreachable = True
+            #    assert False
 
-                if self.has_path(self.root_node, best_node):
-                    self.reroute_path(self.root_node, best_node)
-                    return best_node
-                else:
-                    best_node.not_reachable = True
-                    temp += 1
-                    if temp % 100 == 0:
-                        print(f"Possible inf-loop i={temp} len(selectable_nodes{len(selectable_nodes)}")
-
-    def set_root(self, root_node):
-
-        root_children = []
-        if self.root_node is not None:
-            root_children = list(self.graph.successors(self.root_node.id))
-            root_children.append(self.root_node.id)
-
+    def set_root_node(self, root_node):
         self.root_node = root_node
-        for node_id in root_children:
-            node = self.get_node_info(node_id)
-            if self.has_path(self.root_node, node):
-                self.reroute_path(self.root_node, node)
-                node.not_reachable = False
-            else:
-                node.not_reachable = True
+
+        # if self.root_node is not None:
+        #     root_children = list(self.graph.successors(self.root_node.id))
+        #     root_children.append(self.root_node.id)
+        #
+        # self.root_node = root_node
+        # for node_id in root_children:
+        #     node = self.get_node_info(node_id)
+        #     if self.has_path(self.root_node, node):
+        #         node.not_reachable = False
 
     def reroute_paths(self, root_node):
 
@@ -100,9 +95,9 @@ class Graph:
             if root_node.id != node_id:
                 if self.has_path(self.root_node, node):
                     self.reroute_path(self.root_node, node)
-                    node.not_reachable = False
+                    node.unreachable = False
                 else:
-                    node.not_reachable = True
+                    node.unreachable = True
 
     def reroute_path(self, node_from, node_to):
         nodes, actions = self.get_path(node_from, node_to)
@@ -141,17 +136,15 @@ class Graph:
         nodes.remove(self.root_node)
 
         if only_reachable:
-            selectable_nodes = [x for x in nodes if x.not_reachable is False]
+            selectable_nodes = [x for x in nodes if x.unreachable is False]
         else:
             selectable_nodes = nodes
 
         best_node = selectable_nodes[0]
-        assert (best_node.parent is not None)
-        assert (best_node is not None)
+        if best_node.parent is None:
+            print(best_node.id)
         best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
         for n in selectable_nodes:
-            assert(n.parent is not None)
-            assert (n is not None)
             selected_node_value = n.value() + self.get_edge_info(n.parent, n).reward
             if best_node_value < selected_node_value:
                 best_node = n
@@ -208,7 +201,7 @@ class Graph:
                 node_color_map.append('blue')
             elif node.chosen:
                 node_color_map.append('lightblue')
-            elif node.not_reachable:
+            elif node.unreachable:
                 node_color_map.append('grey')
             elif node in self.new_nodes:
                 node_color_map.append('pink')
@@ -268,25 +261,30 @@ class Graph:
     def save_graph(self, path):
         nx.readwrite.write_gpickle(self.graph, path + ".gpickle")
 
-    def find_reachable(self):
+    def reroute_all(self):
 
         all_nodes = self.get_all_nodes_info()
         for n in all_nodes:
-            pass
-            #n.not_reachable = True
+            n.unreachable = True
 
+        # BFS implementation
         visited = []
         queue = []
-        node = self.root_node.id
+        root_node_id = self.root_node.id
 
-        visited.append(node)
-        queue.append(node)
+        visited.append(root_node_id)
+        queue.append(root_node_id)
 
         while queue:
-            node = queue.pop(0)
-            node_id = self.get_node_info(node)
-            #self.get_node_info(node).not_reachable = False
-            for child in self.graph.successors(node):
+            node_id = queue.pop(0)
+            node = self.get_node_info(node_id)
+            for child in self.graph.successors(node_id):
+                # Set all of the new routes
                 if child not in visited:
+                    child_node = self.get_node_info(child)
+                    child_node.unreachable = False
+                    child_node.parent = node
+                    child_node.action = self.get_edge_info(node, child_node).action
+
                     visited.append(child)
                     queue.append(child)

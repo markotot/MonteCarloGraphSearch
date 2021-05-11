@@ -10,13 +10,13 @@ from Utils.Logger import Logger, plot_images
 # TODO: BUGS -
 #  1) should be fixed --- fricking OOP --- action for step is sometimes None during rollout, very rarely but can happen (16x16, episodes=5, num_rollouts=24, rollout_depth=200)
 #  2) should be fixed - children_criteria is empty in self.select_child(node, criteria_"value") (16x16, episodes=5, num_rollouts=24, rollout_depth=200)
-#  3) if something is marked as not reachable, it will never become reachable again (can be fixed, but takes a lot of computation)
-#  4) optimize route after rollouts
+#  3) should be fixed - if something is marked as not reachable, it will never become reachable again (can be fixed, but takes a lot of computation)
+#  4) should be fixed - optimize route after rollouts
 #  5) should be fixed - !! important !! Action trajectory doesn't reflect the real state
-#  6) circular parenting, infinite loop in backprop
+#  6) should be fixed - circular parenting, infinite loop in backprop
 
 # TODO: Improvements
-#  1) get_optimal_action() based on the best node, not just the best child
+#  1) done - get_optimal_action() based on the best node, not just the best child
 #  2) implement softmax for select_from_frontier()
 #  3) for atari we might not need deepcopy/dijkstra
 #  4) try to make a summarization of the graph using loops/cliques
@@ -29,9 +29,8 @@ from Utils.Logger import Logger, plot_images
 #  3) partial observable env not supported, states are fully representative
 #  4) env isn't perfect for rollouts - more moves you make in the env, less the reward - meaning later rollouts give less reward
 
-# TODO: Optimize select_frontier_node in Graph.py
-#       Include BFS in code (already written)
-#       Do a rollout from the root on every step and then reroute the target state
+# TODO next:
+#   gauss novelties?
 
 
 if __name__ == "__main__":

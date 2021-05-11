@@ -28,7 +28,7 @@ class Node:
         self.novelty_value = novelty_value
 
         self.chosen = False
-        self.not_reachable = False
+        self.unreachable = False
 
     def uct_value(self):
 
@@ -115,9 +115,8 @@ class MCGSAgent(AbstractAgent):
     def plan(self, draw_graph=True):
 
         # TODO: optimize dijkstra, do the checks only after a node has been selected for expansion
-        self.graph.set_root(self.root_node)
-        # uncomment to reroute everything every step (useful for drawing a pretty graph)
-        # self.check_paths()
+        self.graph.set_root_node(self.root_node)
+        self.graph.reroute_all()
 
         # iterations = range(self.episodes)
         iterations = trange(self.episodes, leave=True)
@@ -143,7 +142,7 @@ class MCGSAgent(AbstractAgent):
             self.graph.draw_graph()
 
         action = self.get_optimal_action(self.root_node)
-        self.graph.find_reachable()
+
         Logger.log_data(f"Action: {self.env.agent_action_mapper(action):<16}"
                         f"Current position: {str(self.agent_position(self.root_node)):<12}")
 
@@ -171,27 +170,15 @@ class MCGSAgent(AbstractAgent):
         self.graph.remove_from_frontier(node)
         new_nodes = []
 
-        for a in range(self.env.action_space.n):
+        for action in range(self.env.action_space.n):
 
             expansion_env = deepcopy(env)
-            state, reward, done, _ = expansion_env.step(a)
+            state, reward, done, _ = expansion_env.step(action)
             current_observation = expansion_env.get_observation()
 
-            if current_observation != node.id:
-
-                if self.graph.has_node(current_observation):
-                    child = self.graph.get_node_info(current_observation)
-                else:
-
-                    child = Node(ID=current_observation, parent=node, is_leaf=True, done=done,
-                                 action=a, reward=0, visits=0,
-                                 novelty_value=self.state_database.calculate_novelty(current_observation))
-
-                    self.add_node(child)
-                    new_nodes.append(child)
-
-                edge = Edge(ID=self.edge_counter, node_from=node, node_to=child, action=a, reward=reward, done=done)
-                self.add_edge(edge)
+            child = self.add_new_observation(current_observation, node, action, reward, done)
+            if child is not None:
+                new_nodes.append(child)
 
         return new_nodes
 
@@ -260,20 +247,36 @@ class MCGSAgent(AbstractAgent):
                         reward = step_i[3]
                         done = step_i[4]
                         novelty = self.state_database.calculate_novelty(current_observation)
+                        parent_node = self.graph.get_node_info(previous_observation)
 
-                        if self.graph.has_node(current_observation) is False:
-                            parent = self.graph.get_node_info(previous_observation)
-                            child = Node(ID=current_observation, parent=parent, is_leaf=True, done=done, action=action,
-                                         reward=reward, visits=0,
-                                         novelty_value=novelty)
-                            self.add_node(child)
-                            edge_i = Edge(ID=self.edge_counter, node_from=parent, node_to=child,
-                                          action=action, reward=reward, done=done)
-                            self.add_edge(edge_i, who="Roll")
+                        self.add_new_observation(current_observation, parent_node, action, reward, done)
 
                     if novelty > 0:
                         node = self.graph.get_node_info(observation)
                         Logger.log_novel_data(f"Novel: {self.agent_position(node)}")
+
+    def add_new_observation(self, current_observation, parent_node, action, reward, done):
+
+        new_node = None
+        if current_observation != parent_node.id:  # don't add node if nothing has changed in the observation
+            if self.graph.has_node(current_observation) is False:  # if the node is new, create it and add to the graph
+                child = Node(ID=current_observation, parent=parent_node,
+                             is_leaf=True, done=done, action=action, reward=reward, visits=0,
+                             novelty_value=self.state_database.calculate_novelty(current_observation))
+                self.add_node(child)
+                new_node = child
+            else:  # if the node exists, get it
+                child = self.graph.get_node_info(current_observation)
+                if child.unreachable is True and child != self.root_node:  # if child was unreachable make it reachable through this parent
+                    child.parent = parent_node
+                    child.action = action
+                    child.unreachable = False
+
+            edge = Edge(ID=self.edge_counter, node_from=parent_node, node_to=child,
+                        action=action, reward=reward, done=done)
+            self.add_edge(edge)
+
+            return new_node
 
     def get_optimal_action(self, node):
 

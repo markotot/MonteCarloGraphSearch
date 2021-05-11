@@ -28,10 +28,10 @@ class Graph:
 
     def add_edge(self, edge):
         self.graph.add_edge(edge.node_from.id, edge.node_to.id, info=edge)
-        if edge.node_to.not_reachable:
+        if edge.node_to.unreachable:
             edge.node_to.parent = edge.node_from
             edge.node_to.action = edge.action
-            edge.node_to.not_reachable = False
+            edge.node_to.unreachable = False
 
     def add_to_frontier(self, node):
         self.frontier.append(node)
@@ -50,7 +50,7 @@ class Graph:
         self.graph = nx.readwrite.read_gpickle(path)
 
     def select_frontier_node(self, noisy=False):
-        selectable_nodes = [x for x in self.frontier if x.not_reachable is False]
+        selectable_nodes = [x for x in self.frontier if x.unreachable is False]
 
         if len(selectable_nodes) == 0:
             return None
@@ -80,9 +80,9 @@ class Graph:
             if root_node.id != node_id:
                 if self.has_path(self.root_node, node):
                     self.reroute_path(self.root_node, node)
-                    node.not_reachable = False
+                    node.unreachable = False
                 else:
-                    node.not_reachable = True
+                    node.unreachable = True
 
     def reroute_path(self, node_from, node_to):
         nodes, actions = self.get_path(node_from, node_to)
@@ -118,7 +118,7 @@ class Graph:
         nodes.remove(self.root_node)
 
         if only_reachable:
-            selectable_nodes = [x for x in nodes if x.not_reachable is False]
+            selectable_nodes = [x for x in nodes if x.unreachable is False]
         else:
             selectable_nodes = nodes
 
@@ -178,7 +178,7 @@ class Graph:
                 node_color_map.append('blue')
             elif node.chosen:
                 node_color_map.append('lightblue')
-            elif node.not_reachable:
+            elif node.unreachable:
                 node_color_map.append('grey')
             elif node in self.new_nodes:
                 node_color_map.append('pink')
