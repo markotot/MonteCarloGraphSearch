@@ -151,6 +151,8 @@ crashlytics-build.properties
 fabric.properties
 
 # Local txt files
+Results/
+
 /graph.gpickle
 /test_data.txt
 /test_graph.txt

@@ -25,7 +25,10 @@ class Node:
         self.visits = visits
         self.is_leaf = is_leaf
 
-        self.novelty_value = novelty_value
+        if parent is None:
+            self.novelty_value = novelty_value
+        else:
+            self.novelty_value = self.parent.novelty_value * 0.5 + novelty_value
 
         self.chosen = False
         self.unreachable = False
@@ -48,13 +51,9 @@ class Node:
         current_node = self
 
         while current_node.parent is not None:
-            if debug:
-                print(f"Node: {current_node.id} Parent: {current_node.parent.id} Action: {current_node.action}")
             action_trajectory.insert(0, current_node.action)
             current_node = current_node.parent
 
-        if debug:
-            print(action_trajectory)
         return action_trajectory
 
     def reroute(self, path, actions):
@@ -153,7 +152,7 @@ class MCGSAgent(AbstractAgent):
         if self.root_node.is_leaf:
             return self.root_node
 
-        node = self.graph.select_frontier_node(noisy=True, novelty_factor=0.1)
+        node = self.graph.select_frontier_node(noisy=True, novelty_factor=0.01)
         if node is None:
             return None
 
@@ -251,7 +250,7 @@ class MCGSAgent(AbstractAgent):
 
                         self.add_new_observation(current_observation, parent_node, action, reward, done)
 
-                    if novelty > 0:
+                    if novelty >= 1:
                         node = self.graph.get_node_info(observation)
                         Logger.log_novel_data(f"Novel: {self.agent_position(node)}")
 
@@ -301,22 +300,23 @@ class MCGSAgent(AbstractAgent):
         # best_node = children[children_criteria.index(max(children_criteria))]  # pick the best child
         best_node = self.graph.get_best_node(only_reachable=True)
         print(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
-        Logger.log_data(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
+        #Logger.log_data(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
+        if best_node.done is True:
+            self.state_database.goal_found()
 
         while best_node.parent != self.root_node:
             best_node = best_node.parent
 
         edge = self.graph.get_edge_info(node, best_node)  # pick the edge between children
 
-        Logger.log_data("Choices:")
-        for i in range(len(children)):
-            Logger.log_data(f"\t [{self.env.agent_action_mapper(self.graph.get_edge_info(node, children[i]).action)}]: "
-                            f"{self.agent_position(children[i])}: {round(children_criteria[i], 5)}")
+        #Logger.log_data("Choices:")
+        #for i in range(len(children)):
+        #    Logger.log_data(f"\t [{self.env.agent_action_mapper(self.graph.get_edge_info(node, children[i]).action)}]: "
+        #                    f"{self.agent_position(children[i])}: {round(children_criteria[i], 5)}")
 
         return best_node, edge.action
 
     def check_paths(self):
-
         self.graph.reroute_paths(self.root_node)
 
     def agent_position(self, node):
@@ -329,18 +329,14 @@ class MCGSAgent(AbstractAgent):
         return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_has_key, agent_door_open, agent_door_locked])
 
     def info(self):
-
         env_name = self.env.env.unwrapped.spec.id
         episodes = "Episodes: " + str(self.episodes)
         rollouts = "Num rollouts: " + str(self.num_rollouts)
         depth = "Depth: " + str(self.rollout_depth)
-
         return [env_name, episodes, rollouts, depth]
 
     def add_node(self, node):
 
-        # redundant, but useful for debugging
-        assert not self.graph.has_node(node)
         if not self.graph.has_node(node):
             self.graph.add_node(node)
 

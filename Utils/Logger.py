@@ -8,18 +8,20 @@ from math import ceil, log, floor, sqrt
 
 
 class Logger:
+
     file = "test_data.txt"
     file_graph = "test_graph.txt"
     file_reroute = "test_reroute.txt"
     file_novel = "test_novel.txt"
 
+
     @staticmethod
     def setup(path):
 
-        Logger.file = open(path + "_data.txt", mode='w', buffering=1)
-        Logger.file_graph = open(path + "_graph.txt", mode='w', buffering=1)
-        Logger.file_reroute = open(path + "_reroute.txt", mode='w', buffering=1)
-        Logger.file_novel = open(path + "_novel.txt", mode='w', buffering=1)
+        Logger.file = open("Results/" + path + "_data.txt", mode='w', buffering=1)
+        Logger.file_graph = open("Results/" + path + "_graph.txt", mode='w', buffering=1)
+        Logger.file_reroute = open("Results/" + path + "_reroute.txt", mode='w', buffering=1)
+        Logger.file_novel = open("Results/" + path + "_novel.txt", mode='w', buffering=1)
 
         dt_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         Logger.file.write(f"Date: {dt_now} \n\n")
@@ -68,7 +70,7 @@ class Logger:
         Logger.file_novel.close()
 
 
-def plot_images(images, reward):
+def plot_images(number, images, reward):
     image_len = len(images)
     empty = np.array(images[0].copy())
     empty.fill(0)
@@ -88,6 +90,9 @@ def plot_images(images, reward):
         image_row = np.concatenate(images[i * cols: (i + 1) * cols], 1)
         image_rows.append(image_row)
 
-    plt.title(f"Steps: {image_len - 1}   Reward: {round(reward, 2)}")
+    plt.axis('off')
+    plt.title(f"Test:{number} Steps: {image_len - 1}   Reward: {round(reward, 2)}")
+
     plt.imshow(np.concatenate(image_rows, 0))
+    plt.savefig(f"Results/{number}.png", dpi=384)
     plt.show()

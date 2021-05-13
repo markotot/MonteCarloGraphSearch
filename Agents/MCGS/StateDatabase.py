@@ -1,5 +1,5 @@
 import numpy as np
-
+from Utils.Logger import  Logger
 class StateDatabase:
 
     def __init__(self):
@@ -12,6 +12,10 @@ class StateDatabase:
 
         self.total_data_points = 0
         self.novelty_percentage = 0.25
+
+        self.key_subgoal_reached = False
+        self.door_subgoal_reached = False
+        self.goal_subgoal_reached = False
 
     def calculate_novelty(self, observation):
 
@@ -43,4 +47,23 @@ class StateDatabase:
 
         self.total_data_points += 1
 
+        if observation[3] == 'key':
+            self.key_picked_up()
+        if observation[4] is True:
+            self.door_opened()
+
+    def key_picked_up(self):
+        if self.key_subgoal_reached is False:
+            self.key_subgoal_reached = True
+            Logger.log_data(f"Key subgoal found (Total nodes: {self.total_data_points})")
+
+    def door_opened(self):
+        if self.door_subgoal_reached is False:
+            self.door_subgoal_reached = True
+            Logger.log_data(f"Door subgoal found (Total nodes: {self.total_data_points})")
+
+    def goal_found(self):
+        if self.goal_subgoal_reached is False:
+            self.goal_subgoal_reached = True
+            Logger.log_data(f"Goal found (Total nodes: {self.total_data_points})")
 

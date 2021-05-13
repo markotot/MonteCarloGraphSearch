@@ -56,7 +56,7 @@ class Graph:
 
             if noisy:
                 amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
-                noise = np.random.normal(0, max(amplitude, 0.001), len(selectable_nodes))
+                noise = np.random.normal(0, max(amplitude, 0.0001), len(selectable_nodes))
             else:
                 noise = 0
 
@@ -68,26 +68,11 @@ class Graph:
                     best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
 
             assert self.has_path(self.root_node, best_node)
+            #  need a reroute if we are going to use assumptions with children
             return best_node
-            # if self.has_path(self.root_node, best_node):
-            #    pass
-            #    #self.reroute_path(self.root_node, best_node)
-            #else:
-            #    best_node.unreachable = True
-            #    assert False
 
     def set_root_node(self, root_node):
         self.root_node = root_node
-
-        # if self.root_node is not None:
-        #     root_children = list(self.graph.successors(self.root_node.id))
-        #     root_children.append(self.root_node.id)
-        #
-        # self.root_node = root_node
-        # for node_id in root_children:
-        #     node = self.get_node_info(node_id)
-        #     if self.has_path(self.root_node, node):
-        #         node.not_reachable = False
 
     def reroute_paths(self, root_node):
 
@@ -141,8 +126,6 @@ class Graph:
             selectable_nodes = nodes
 
         best_node = selectable_nodes[0]
-        if best_node.parent is None:
-            print(best_node.id)
         best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
         for n in selectable_nodes:
             selected_node_value = n.value() + self.get_edge_info(n.parent, n).reward

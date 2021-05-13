@@ -26,39 +26,43 @@ from Utils.Logger import Logger, plot_images
 # TODO: restrictions
 #  1) node can't have edge into itself (problem with empty frontier)
 #  2) stochastic environment not supported
-#  3) partial observable env not supported, states are fully representative
+#  3) partial observable env not supported, states need to be MDP
 #  4) env isn't perfect for rollouts - more moves you make in the env, less the reward - meaning later rollouts give less reward
 
 # TODO next:
-#   gauss novelties?
+#   make novelties be continuous rather than discrete yes/no
+#   parallelize BFS
+#   check only for children
 
 
 if __name__ == "__main__":
 
-    env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
-    env.get_action_list()
+    for n in range(10):
+        env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
+        env.get_action_list()
 
-    Logger.setup(path="test")
-    agent = MCGSAgent(env, episodes=10, num_rollouts=20, rollout_depth=50)
+        Logger.setup(path=str(n))
+        agent = MCGSAgent(env, episodes=10, num_rollouts=20, rollout_depth=50)
 
-    print(agent.info())
-    images = [env.render()]
-    total_reward = 0
+        print(agent.info())
+        images = [env.render()]
+        total_reward = 0
 
-    plt.imshow(images[0])
-    plt.show()
-    for i in range(200):
-        action = agent.plan(draw_graph=False)
-        state, reward, done, info = agent.act(action)
-        images.append(env.render())
-        total_reward += reward
+        # plt.imshow(images[0])
+        # plt.show()
+        for i in range(200):
+            action = agent.plan(draw_graph=False)
+            state, reward, done, info = agent.act(action)
+            images.append(env.render())
+            total_reward += reward
 
-        print(f"{i}){' ' * (4 - len(str(i)))} "
-              f"Action: {action}",
-              f"Reward: {reward}")
-        if done:
-            break
+            print(f"{i}){' ' * (4 - len(str(i)))} "
+                  f"Action: {action}",
+                  f"Reward: {reward}")
+            if done:
+                break
 
-    Logger.close()
-    agent.graph.save_graph("graph")
-    plot_images(images, total_reward)
+        Logger.log_data(f"Game finished (Total nodes: {agent.state_database.total_data_points})")
+        Logger.close()
+        agent.graph.save_graph("graph")
+        plot_images(n, images, total_reward)
