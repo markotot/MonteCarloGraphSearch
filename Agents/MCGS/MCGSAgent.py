@@ -117,10 +117,10 @@ class MCGSAgent(AbstractAgent):
         self.graph.set_root_node(self.root_node)
         self.graph.reroute_all()
 
-        # iterations = range(self.episodes)
-        iterations = trange(self.episodes, leave=True)
-        iterations.set_description(
-            f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
+        iterations = range(self.episodes)
+        #iterations = trange(self.episodes, leave=True)
+        #iterations.set_description(
+        #    f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
 
         for _ in iterations:
 

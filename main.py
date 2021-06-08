@@ -60,8 +60,8 @@ if __name__ == "__main__":
         images = [env.render()]
         total_reward = 0
 
-        # plt.imshow(images[0])
-        # plt.show()
+        plt.imshow(images[0])
+        plt.show()
         for i in range(200):
             action = agent.plan(draw_graph=False)
             state, reward, done, info = agent.act(action)

@@ -22,7 +22,6 @@ class DemoDoorKeyEnv(MiniGridEnv):
 
     def _gen_grid(self, width, height):
 
-        print(self.ascii)
         # Create an empty grid
         self.grid = Grid(width, height)
 
