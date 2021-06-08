@@ -329,7 +329,7 @@ class MCGSAgent(AbstractAgent):
         return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_has_key, agent_door_open, agent_door_locked])
 
     def info(self):
-        env_name = self.env.env.unwrapped.spec.id
+        env_name = self.env.name
         episodes = "Episodes: " + str(self.episodes)
         rollouts = "Num rollouts: " + str(self.num_rollouts)
         depth = "Depth: " + str(self.rollout_depth)

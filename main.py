@@ -5,6 +5,7 @@ from Agents.MCTS.MCTSAgent import MCTSAgent
 from Agents.MCGS.MCGSAgent import MCGSAgent
 
 from Environments.MiniGridEnv import MiniGridEnv
+from Environments.DemoMiniGrid import DemoMiniGrid
 from Utils.Logger import Logger, plot_images
 
 # TODO: BUGS -
@@ -34,11 +35,22 @@ from Utils.Logger import Logger, plot_images
 #   parallelize BFS
 #   check only for children
 
+default_ascii = [
+    ['Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall'],
+    ['Wall', 'Player', ' ', 'Wall', ' ', ' ', ' ', 'Wall'],
+    ['Wall', 'Key', ' ', 'Wall', ' ', ' ', ' ', 'Wall'],
+    ['Wall', 'Wall', 'Door', 'Wall', ' ', ' ', ' ', 'Wall'],
+    ['Wall', ' ', ' ', ' ', ' ', ' ', ' ', 'Wall'],
+    ['Wall', ' ', ' ', ' ', ' ', ' ', ' ', 'Wall'],
+    ['Wall', ' ', ' ', ' ', ' ', 'Goal', ' ', 'Wall'],
+    ['Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall']
+]
 
 if __name__ == "__main__":
 
     for n in range(10):
-        env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
+        #env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
+        env = DemoMiniGrid(default_ascii)
         env.get_action_list()
 
         Logger.setup(path=str(n))
