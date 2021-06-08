@@ -299,8 +299,8 @@ class MCGSAgent(AbstractAgent):
 
         # best_node = children[children_criteria.index(max(children_criteria))]  # pick the best child
         best_node = self.graph.get_best_node(only_reachable=True)
-        print(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
-        #Logger.log_data(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
+        #print(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
+        
         if best_node.done is True:
             self.state_database.goal_found()
 
@@ -308,12 +308,6 @@ class MCGSAgent(AbstractAgent):
             best_node = best_node.parent
 
         edge = self.graph.get_edge_info(node, best_node)  # pick the edge between children
-
-        #Logger.log_data("Choices:")
-        #for i in range(len(children)):
-        #    Logger.log_data(f"\t [{self.env.agent_action_mapper(self.graph.get_edge_info(node, children[i]).action)}]: "
-        #                    f"{self.agent_position(children[i])}: {round(children_criteria[i], 5)}")
-
         return best_node, edge.action
 
     def check_paths(self):
