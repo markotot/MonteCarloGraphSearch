@@ -300,7 +300,7 @@ class MCGSAgent(AbstractAgent):
         # best_node = children[children_criteria.index(max(children_criteria))]  # pick the best child
         best_node = self.graph.get_best_node(only_reachable=True)
         #print(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
-        
+
         if best_node.done is True:
             self.state_database.goal_found()
 

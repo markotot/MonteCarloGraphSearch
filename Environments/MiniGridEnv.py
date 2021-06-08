@@ -41,12 +41,12 @@ class MiniGridEnv(AbstractEnv):
         return {0: "right", 1: "down", 2: "left", 3: "up"}[agent_dir]
 
     def agent_action_mapper(self, action):
-        return {0: "Turn left",
-                1: "Turn right",
-                2: "Move forward",
-                3: "Pick up object",
-                4: "Drop object",
-                5: "Interact",
+        return {0: "Turns left",
+                1: "Turns right",
+                2: "Moves forward",
+                3: "Picks up object",
+                4: "Drops object",
+                5: "Interacts",
                 6: "Done",
                 }[action]
 
