@@ -1,10 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-import random
-from Utils.Logger import Logger
 from networkx.drawing.nx_agraph import graphviz_layout
-from Agents.MCGS.StateDatabase import StateDatabase
 
 #Colors:
 # orange    -   standard
@@ -17,13 +14,17 @@ from Agents.MCGS.StateDatabase import StateDatabase
 
 class Graph:
 
-    def __init__(self):
+    def __init__(self, seed, config):
 
         self.graph = nx.DiGraph()
+        self.config = config
         self.frontier = []
 
+        self.amplitude_factor = config['amplitude_factor']
+        self.noisy_min_value = config['noisy_min_value']
         self.root_node = None
         self.new_nodes = []
+        self.random = np.random.RandomState(seed)
 
     def add_node(self, node):
         self.graph.add_node(node.id, info=node)
@@ -47,7 +48,7 @@ class Graph:
     def load_graph(self, path):
         self.graph = nx.readwrite.read_gpickle(path)
 
-    def select_frontier_node(self, noisy=False, novelty_factor=0):
+    def select_frontier_node(self, noisy, novelty_factor):
 
         selectable_nodes = [x for x in self.frontier if x.unreachable is False]
         if len(selectable_nodes) == 0:
@@ -55,8 +56,8 @@ class Graph:
         else:
 
             if noisy:
-                amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
-                noise = np.random.normal(0, max(amplitude, 0.0001), len(selectable_nodes))
+                amplitude = self.get_best_node(only_reachable=True).uct_value() * self.amplitude_factor
+                noise = self.random.normal(0, max(amplitude, self.noisy_min_value), len(selectable_nodes))
             else:
                 noise = 0
 
@@ -68,7 +69,6 @@ class Graph:
                     best_node_value = n.uct_value() + noise[i] + novelty_factor * n.novelty_value
 
             assert self.has_path(self.root_node, best_node)
-            #  need a reroute if we are going to use assumptions with children
             return best_node
 
     def set_root_node(self, root_node):
@@ -172,7 +172,6 @@ class Graph:
 
         for node in nodes_info.values():
 
-            #value_map[node.id] = str(round(node.value(), 2))
             if (node.novelty_value == 0 and node.value() == 0) or node not in self.frontier:
                 value_map[node.id] = ""
             else:
@@ -245,7 +244,7 @@ class Graph:
         nx.readwrite.write_gpickle(self.graph, path + ".gpickle")
 
     def reroute_all(self):
-
+        i = 0
         all_nodes = self.get_all_nodes_info()
         for n in all_nodes:
             n.unreachable = True
@@ -268,6 +267,41 @@ class Graph:
                     child_node.unreachable = False
                     child_node.parent = node
                     child_node.action = self.get_edge_info(node, child_node).action
-
+                    i += 1
                     visited.append(child)
                     queue.append(child)
+        #print(i)
+
+    def reroute_all_optimized(self):
+        i = 0
+        all_nodes = self.get_all_nodes_info()
+        for n in all_nodes:
+            n.unreachable = True
+
+        # BFS implementation
+        visited = []
+        queue = []
+        root_node_id = self.root_node.id
+
+        visited.append(root_node_id)
+        queue.append(root_node_id)
+
+        while queue:
+            node_id = queue.pop(0)
+            node = self.get_node_info(node_id)
+            for child in self.graph.successors(node_id):
+                # Set all of the new routes
+                if child not in visited:
+                    child_node = self.get_node_info(child)
+                    child_node.unreachable = False
+                    if child_node.parent == node:
+                        pass
+                    else:
+                        child_node.parent = node
+                        child_node.action = self.get_edge_info(node, child_node).action
+                        queue.append(child)
+                    visited.append(child)
+                    i += 1
+        #print(i)
+
+

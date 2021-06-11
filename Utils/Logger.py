@@ -1,10 +1,9 @@
-import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-import logging
+import os
 
 from datetime import datetime
-from math import ceil, log, floor, sqrt
+from math import ceil, floor, sqrt
 
 
 class Logger:
@@ -14,14 +13,28 @@ class Logger:
     file_reroute = "test_reroute.txt"
     file_novel = "test_novel.txt"
 
+    result_folder = "Results/"
+    directory_path = None
 
     @staticmethod
-    def setup(path):
+    def setup(env_info, seed, path):
 
-        Logger.file = open("Results/" + path + "_data.txt", mode='w', buffering=1)
-        Logger.file_graph = open("Results/" + path + "_graph.txt", mode='w', buffering=1)
-        Logger.file_reroute = open("Results/" + path + "_reroute.txt", mode='w', buffering=1)
-        Logger.file_novel = open("Results/" + path + "_novel.txt", mode='w', buffering=1)
+        if not os.path.isdir(Logger.result_folder):
+            os.mkdir(Logger.result_folder)
+
+        if not os.path.isdir(Logger.result_folder+env_info):
+            os.mkdir(Logger.result_folder+env_info)
+
+        current_time = datetime.now().strftime("%d_%h_%y_%H_%M_%S")
+        Logger.directory_path = Logger.result_folder + env_info + "/" + current_time + "/"
+        if not os.path.isdir(Logger.directory_path):
+            os.mkdir(Logger.directory_path)
+
+        Logger.file = open(Logger.directory_path + path + "_data.txt", mode='w', buffering=1)
+        Logger.file_graph = open(Logger.directory_path + path + "_graph.txt", mode='w', buffering=1)
+        Logger.file_reroute = open(Logger.directory_path + path + "_reroute.txt", mode='w', buffering=1)
+        Logger.file_novel = open(Logger.directory_path + path + "_novel.txt", mode='w', buffering=1)
+
 
         dt_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         Logger.file.write(f"Date: {dt_now} \n\n")
@@ -70,7 +83,7 @@ class Logger:
         Logger.file_novel.close()
 
 
-def plot_images(number, images, reward):
+def plot_images(number, images, reward, verbose):
     image_len = len(images)
     empty = np.array(images[0].copy())
     empty.fill(0)
@@ -94,5 +107,8 @@ def plot_images(number, images, reward):
     plt.title(f"Test:{number} Steps: {image_len - 1}   Reward: {round(reward, 2)}")
 
     plt.imshow(np.concatenate(image_rows, 0))
-    plt.savefig(f"Results/{number}.png", dpi=384)
-    plt.show()
+    plt.savefig(f"{Logger.directory_path + str(number)}.png", dpi=384)
+    if verbose:
+        plt.show()
+    else:
+        plt.close()

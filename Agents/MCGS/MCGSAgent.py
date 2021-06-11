@@ -8,6 +8,7 @@ import concurrent.futures
 
 from copy import deepcopy
 from tqdm import trange
+import time
 
 
 class Node:
@@ -88,18 +89,27 @@ class Edge:
 
 class MCGSAgent(AbstractAgent):
 
-    def __init__(self, env, episodes, num_rollouts, rollout_depth):
-        super().__init__(env)
+    def __init__(self, env, seed, config, verbose):
+        super().__init__(env=env, seed=seed)
 
-        self.graph = Graph()
-        self.state_database = StateDatabase()
+        self.config = config
+        self.verbose = verbose
+        self.graph = Graph(seed, config)
+        self.state_database = StateDatabase(config)
 
         self.node_counter = 0
         self.edge_counter = 0
 
-        self.episodes = episodes
-        self.num_rollouts = num_rollouts
-        self.rollout_depth = rollout_depth
+        self.episodes = config['episodes']
+        self.num_rollouts = config['num_rollouts']
+        self.rollout_depth = config['rollout_depth']
+        self.noisy_frontier_selection = config['noisy_frontier_selection']
+        self.use_novelty = config['use_novelty']
+        self.novelty_factor = config['novelty_factor']
+        self.add_nodes_during_rollout = config['add_nodes_during_rollout']
+        self.use_back_propagation = config['use_back_propagation']
+        self.use_disabled_actions = config['use_disabled_actions']
+        self.only_add_novel_states = config['only_add_novel_states']
 
         self.root_node = Node(ID=self.env.get_observation(), parent=None, is_leaf=True, done=False,
                               action=None, reward=0, visits=0, novelty_value=0)
@@ -111,19 +121,20 @@ class MCGSAgent(AbstractAgent):
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
 
-    def plan(self, draw_graph=True):
+    def plan(self, draw_graph=True) -> int:
 
         # TODO: optimize dijkstra, do the checks only after a node has been selected for expansion
         self.graph.set_root_node(self.root_node)
         self.graph.reroute_all()
 
-        iterations = range(self.episodes)
-        #iterations = trange(self.episodes, leave=True)
-        #iterations.set_description(
-        #    f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
+        if self.verbose:
+            iterations = trange(self.episodes, leave=True)
+            iterations.set_description(
+                f"Total: {str(len(self.graph.graph.nodes))} Frontier: {str(len(self.graph.frontier))}")
+        else:
+            iterations = range(self.episodes)
 
         for _ in iterations:
-
             selection_env = deepcopy(self.env)
             node = self.selection(selection_env)
 
@@ -134,8 +145,10 @@ class MCGSAgent(AbstractAgent):
 
             for c in children:
                 reward, novelties = self.simulation(c, selection_env)
-                self.add_novelties_to_graph(novelties)
-                self.back_propagation(c, reward)
+                if self.add_nodes_during_rollout:
+                    self.add_novelties_to_graph(novelties)
+                if self.use_back_propagation:
+                    self.back_propagation(c, reward)
 
         if draw_graph:
             self.graph.draw_graph()
@@ -152,7 +165,7 @@ class MCGSAgent(AbstractAgent):
         if self.root_node.is_leaf:
             return self.root_node
 
-        node = self.graph.select_frontier_node(noisy=True, novelty_factor=0.01)
+        node = self.graph.select_frontier_node(noisy=self.noisy_frontier_selection, novelty_factor=self.novelty_factor * int(self.use_novelty))
         if node is None:
             return None
 
@@ -181,36 +194,40 @@ class MCGSAgent(AbstractAgent):
 
         return new_nodes
 
-    def simulation(self, node, env, disable_actions=True):
+    def simulation(self, node, env):
         rewards = []
-        paths = []
+        total_steps = 0
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
+            paths = [None] * self.num_rollouts
             for i in range(self.num_rollouts):
                 disabled_actions = []
-                if disable_actions:
+                if self.use_disabled_actions:
                     if i < self.env.action_space.n:
                         disabled_actions.append(i)
-                futures.append(executor.submit(self.rollout, node, env, disabled_actions))
+
+                possible_actions = [x for x in range(self.env.action_space.n) if x not in disabled_actions]
+                action_list = self.random.choice(possible_actions, self.rollout_depth)
+                futures.append(executor.submit(self.rollout, node, env, action_list, i))
 
             for f in concurrent.futures.as_completed(futures):
-                average_reward, path = f.result()
+                average_reward, path, i = f.result()
+                paths[i] = path
                 rewards.append(average_reward)
-                paths.append(path)
+                total_steps += len(path)
 
         return np.mean(rewards), paths
 
-    def rollout(self, node, env, disabled_actions=[]):
+    def rollout(self, node, env, action_list, i):
         cum_reward = 0
         path = []
         rollout_env = deepcopy(env)
         env.step(node.action)
 
         previous_observation = rollout_env.get_observation()
-        for n in range(self.rollout_depth):
+        for action in action_list:
 
-            state, r, done, _ = rollout_env.random_step(disabled_actions)
-            action = rollout_env.action
+            state, r, done, _ = rollout_env.step(action)
             observation = rollout_env.get_observation()
             cum_reward += r
 
@@ -219,7 +236,7 @@ class MCGSAgent(AbstractAgent):
             if done:
                 break
 
-        return cum_reward, path
+        return cum_reward, path, i
 
     def back_propagation(self, node, reward):
         y = 1
@@ -229,14 +246,14 @@ class MCGSAgent(AbstractAgent):
             node = node.parent
             y *= y
 
-    def add_novelties_to_graph(self, paths, only_novel=False):
+    def add_novelties_to_graph(self, paths):
 
         for path in paths:
             for idx, step in enumerate(path):
 
                 observation = step[1]
                 novelty = self.state_database.calculate_novelty(observation)
-                if self.graph.has_node(observation) is False and (novelty > 0 or only_novel is False):
+                if self.graph.has_node(observation) is False and (novelty > 0 or self.only_add_novel_states is False):
 
                     for i in range(idx + 1):
                         step_i = path[i]
@@ -293,14 +310,7 @@ class MCGSAgent(AbstractAgent):
 
     def select_best_step(self, node):
 
-        children = self.graph.get_children(node)  # get children
-        children_criteria = [(x.value() + self.graph.get_edge_info(node, x).reward) for x in
-                             children]  # find their Q values
-
-        # best_node = children[children_criteria.index(max(children_criteria))]  # pick the best child
         best_node = self.graph.get_best_node(only_reachable=True)
-        #print(f"Target: {self.agent_position(best_node)}: {round(best_node.value(), 5)}")
-
         if best_node.done is True:
             self.state_database.goal_found()
 
@@ -327,7 +337,8 @@ class MCGSAgent(AbstractAgent):
         episodes = "Episodes: " + str(self.episodes)
         rollouts = "Num rollouts: " + str(self.num_rollouts)
         depth = "Depth: " + str(self.rollout_depth)
-        return [env_name, episodes, rollouts, depth]
+        seed = "Seed: " + str(self.env.seed)
+        return [env_name, seed, episodes, rollouts, depth]
 
     def add_node(self, node):
 
@@ -355,4 +366,15 @@ class MCGSAgent(AbstractAgent):
                                   f" -> {str(self.agent_position(edge.node_to)):<12}"
                                   f" Action: {self.env.agent_action_mapper(edge.action):<16}")
 
+    def get_metrics(self):
 
+        metrics = dict(
+            total_nodes=len(self.graph.graph.nodes),
+            frontier_nodes=len(self.graph.frontier),
+            forward_model_calls=0,
+            key_found=self.state_database.subgoals['key_subgoal'],
+            door_found=self.state_database.subgoals['door_subgoal'],
+            goal_found=self.state_database.subgoals['goal_found'],
+             )
+
+        return metrics

@@ -2,6 +2,7 @@ from gym import Env
 import random
 
 class AbstractEnv:
+
     def __init__(self, env: Env):
 
         self.env = env
@@ -16,14 +17,14 @@ class AbstractEnv:
         self.reset()
 
     def step(self, action):
+
         self.action = action
         self.state, self.reward, self.done, self.info = self.env.step(self.action)
         return self.state, self.reward, self.done, self.info
 
     def random_step(self, disabled_actions=[]):
-
         possible_actions = [x for x in range(self.action_space.n) if x not in disabled_actions]
-
+        
         self.action = random.choice(possible_actions)
         self.state, self.reward, self.done, self.info = self.env.step(self.action)
         return self.state, self.reward, self.done, self.info

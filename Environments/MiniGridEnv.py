@@ -7,11 +7,13 @@ from Environments.AbstractEnv import AbstractEnv
 
 class MiniGridEnv(AbstractEnv):
 
-    def __init__(self, name):
+    def __init__(self, name, seed=42):
         env = gym.make(name)
+        env.seed(seed)
         super().__init__(env)
 
         self.env = env
+        self.seed = seed
         self.name = self.env.unwrapped.spec.id
 
 
@@ -26,10 +28,6 @@ class MiniGridEnv(AbstractEnv):
 
     def render(self):
         return self.env.render(mode='rgb_array', highlight=False)
-
-    def step(self, action):
-        (observation, reward, done, info) = self.env.step(action)
-        return observation, reward, done, info
 
     def get_agent_position(self):
         agent_pos_x = self.env.agent_pos[0]

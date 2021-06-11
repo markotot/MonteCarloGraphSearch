@@ -1,7 +1,11 @@
+import numpy as np
+
 class AbstractAgent:
 
-    def __init__(self, env):
+    def __init__(self, env, seed):
         self.env = env
+        self.seed = seed
+        self.random = np.random.RandomState(self.seed)
 
     def plan(self):
         pass

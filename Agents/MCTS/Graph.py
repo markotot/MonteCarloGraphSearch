@@ -1,7 +1,6 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-import random
 from Utils.Logger import Logger
 from networkx.drawing.nx_agraph import graphviz_layout
 
@@ -58,7 +57,7 @@ class Graph:
 
             if noisy:
                 amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
-                noise = np.random.normal(0, amplitude, len(selectable_nodes))
+                noise = self.random.normal(0, amplitude, len(selectable_nodes))
             else:
                 noise = 0
 

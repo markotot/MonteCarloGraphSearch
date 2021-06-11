@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
-import numpy as np
-
-from Agents.MCTS.MCTSAgent import MCTSAgent
+import yaml
+import time
+import datetime
+import pandas as pd
+from tqdm import tqdm
 from Agents.MCGS.MCGSAgent import MCGSAgent
 
 from Environments.MiniGridEnv import MiniGridEnv
-from Environments.DemoMiniGrid import DemoMiniGrid
 from Utils.Logger import Logger, plot_images
 
 # TODO: BUGS -
@@ -23,6 +24,7 @@ from Utils.Logger import Logger, plot_images
 #  4) try to make a summarization of the graph using loops/cliques
 #  5) try a Value Function with exploration
 #  6) compare with a state of the art MCTS
+#  7) test the disabled actions and see if it's an improvement or not
 
 # TODO: restrictions
 #  1) node can't have edge into itself (problem with empty frontier)
@@ -35,46 +37,71 @@ from Utils.Logger import Logger, plot_images
 #   parallelize BFS
 #   check only for children
 
-default_ascii = [
-    ['Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall'],
-    ['Wall', 'Player', ' ', 'Wall', ' ', ' ', ' ', 'Wall'],
-    ['Wall', 'Key', ' ', 'Wall', ' ', ' ', ' ', 'Wall'],
-    ['Wall', 'Wall', 'Door', 'Wall', ' ', ' ', ' ', 'Wall'],
-    ['Wall', ' ', ' ', ' ', ' ', ' ', ' ', 'Wall'],
-    ['Wall', ' ', ' ', ' ', ' ', ' ', ' ', 'Wall'],
-    ['Wall', ' ', ' ', ' ', ' ', 'Goal', ' ', 'Wall'],
-    ['Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall', 'Wall']
-]
+def run_experiment(agent_config_path, env_name, seed, verbose=True):
+
+    with open(agent_config_path, 'r') as stream:
+        agent_config = yaml.safe_load(stream)
+
+    env = MiniGridEnv(env_name, seed=seed)
+    Logger.setup(env_info=env.name, seed=seed, path=str(seed))
+
+    agent = MCGSAgent(env, seed=seed, config=agent_config, verbose=verbose)
+    images = [env.render()]
+    total_reward = 0
+
+    if verbose:
+        env.get_action_list()
+        print(agent.info())
+        plt.imshow(images[0])
+        plt.show()
+
+    start_time = time.time()
+    for i in range(200):
+        action = agent.plan(draw_graph=False)
+        state, reward, done, info = agent.act(action)
+        images.append(env.render())
+        total_reward += reward
+
+        if done:
+            break
+    end_time = time.time()
+
+    Logger.log_data(f"Game finished (Total nodes: {agent.state_database.total_data_points})")
+    Logger.close()
+    agent.graph.save_graph("graph")
+
+    plot_images(seed, images, total_reward, verbose)
+
+    metrics = agent.get_metrics()
+    metrics.update(solved=total_reward > 0)
+    metrics.update(number_of_steps=i)
+    metrics.update(time_elapsed=datetime.timedelta(seconds=int(end_time - start_time)))
+    return metrics
+
 
 if __name__ == "__main__":
 
-    for n in range(10):
-        #env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
-        env = DemoMiniGrid(default_ascii)
-        env.get_action_list()
+    env_name = 'MiniGrid-DoorKey-8x8-v0'
+    seed = 1337
+    experiments = [
+        "Experiments/AgentConfig/mcgs_1.yaml",
+        "Experiments/AgentConfig/mcgs_3.yaml",
+    ]
 
-        Logger.setup(path=str(n))
-        agent = MCGSAgent(env, episodes=10, num_rollouts=16, rollout_depth=50)
+    experiment_metrics = dict()
+    for experiment in tqdm(experiments):
+        experiment_metrics[experiment] = run_experiment(experiment, env_name, seed=seed, verbose=True)
 
-        print(agent.info())
-        images = [env.render()]
-        total_reward = 0
-
-        plt.imshow(images[0])
-        plt.show()
-        for i in range(200):
-            action = agent.plan(draw_graph=False)
-            state, reward, done, info = agent.act(action)
-            images.append(env.render())
-            total_reward += reward
-
-            print(f"{i}){' ' * (4 - len(str(i)))} "
-                  f"Action: {action}",
-                  f"Reward: {reward}")
-            if done:
-                break
-
-        Logger.log_data(f"Game finished (Total nodes: {agent.state_database.total_data_points})")
-        Logger.close()
-        agent.graph.save_graph("graph")
-        plot_images(n, images, total_reward)
+    order_metrics = [
+        'solved',
+        'number_of_steps',
+        'forward_model_calls',
+        'key_found',
+        'door_found',
+        'goal_found',
+        'total_nodes',
+        'frontier_nodes',
+        'time_elapsed'
+    ]
+    experiment_metrics = pd.DataFrame(experiment_metrics,  index=order_metrics)
+    print(experiment_metrics)
