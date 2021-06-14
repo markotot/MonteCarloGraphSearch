@@ -107,7 +107,7 @@ def plot_images(number, images, reward, verbose):
     plt.title(f"Test:{number} Steps: {image_len - 1}   Reward: {round(reward, 2)}")
 
     plt.imshow(np.concatenate(image_rows, 0))
-    plt.savefig(f"{Logger.directory_path + str(number)}.png", dpi=384)
+    #plt.savefig(f"{Logger.directory_path + str(number)}.png", dpi=384)
     if verbose:
         plt.show()
     else:

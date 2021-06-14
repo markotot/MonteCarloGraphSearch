@@ -56,7 +56,7 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
         plt.show()
 
     start_time = time.time()
-    for i in range(200):
+    for i in range(100):
         action = agent.plan(draw_graph=False)
         state, reward, done, info = agent.act(action)
         images.append(env.render())
@@ -82,15 +82,12 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
 if __name__ == "__main__":
 
     env_name = 'MiniGrid-DoorKey-8x8-v0'
-    seed = 1337
+    seeds = [42] #, 10, 80, 130, 2000]
     experiments = [
-        "Experiments/AgentConfig/mcgs_1.yaml",
-        "Experiments/AgentConfig/mcgs_3.yaml",
-    ]
 
-    experiment_metrics = dict()
-    for experiment in tqdm(experiments):
-        experiment_metrics[experiment] = run_experiment(experiment, env_name, seed=seed, verbose=True)
+        "Experiments/AgentConfig/mcgs_2.yaml",
+
+    ]
 
     order_metrics = [
         'solved',
@@ -103,5 +100,15 @@ if __name__ == "__main__":
         'frontier_nodes',
         'time_elapsed'
     ]
-    experiment_metrics = pd.DataFrame(experiment_metrics,  index=order_metrics)
+
+    loop = tqdm(experiments)
+    experiment_metrics = dict()
+    for experiment in loop:
+        for seed in seeds:
+            loop.set_description(f"Doing seed {seed} for experiment {experiment}")
+            experiment_metrics[experiment + str(seed)] = \
+                run_experiment(experiment, env_name, seed=seed, verbose=True)
+
+    experiment_metrics = pd.DataFrame(experiment_metrics,  index=order_metrics).T
+    experiment_metrics.to_csv('experiment_results5.csv')
     print(experiment_metrics)

@@ -178,7 +178,6 @@ class Graph:
                 value_map[node.id] = str(round(node.novelty_value + node.value(), 2))
             node_size_map.append(30)
 
-
             if node == self.root_node:
                 node_color_map.append('blue')
             elif node.chosen:

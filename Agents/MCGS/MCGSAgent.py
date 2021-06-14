@@ -117,6 +117,7 @@ class MCGSAgent(AbstractAgent):
         self.node_counter += 1
 
         self.add_node(self.root_node)
+        self.forward_model_calls = 0
 
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
@@ -171,6 +172,7 @@ class MCGSAgent(AbstractAgent):
 
         for action in node.trajectory_from_root():
             env.step(action)
+            self.forward_model_calls += 1
 
         assert node.id == env.get_observation()
 
@@ -186,6 +188,7 @@ class MCGSAgent(AbstractAgent):
 
             expansion_env = deepcopy(env)
             state, reward, done, _ = expansion_env.step(action)
+            self.forward_model_calls += 1
             current_observation = expansion_env.get_observation()
 
             child = self.add_new_observation(current_observation, node, action, reward, done)
@@ -216,6 +219,7 @@ class MCGSAgent(AbstractAgent):
                 rewards.append(average_reward)
                 total_steps += len(path)
 
+        self.forward_model_calls += total_steps
         return np.mean(rewards), paths
 
     def rollout(self, node, env, action_list, i):
@@ -371,7 +375,7 @@ class MCGSAgent(AbstractAgent):
         metrics = dict(
             total_nodes=len(self.graph.graph.nodes),
             frontier_nodes=len(self.graph.frontier),
-            forward_model_calls=0,
+            forward_model_calls=self.forward_model_calls,
             key_found=self.state_database.subgoals['key_subgoal'],
             door_found=self.state_database.subgoals['door_subgoal'],
             goal_found=self.state_database.subgoals['goal_found'],

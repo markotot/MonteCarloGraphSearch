@@ -2,7 +2,7 @@ import os
 from gym_minigrid.wrappers import *
 
 from rl_agents.trainer import logger
-from rl_agents.trainer.evaluation import Evaluation
+from EduardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 
 from Environments.MiniGridEnv import MiniGridEnv
@@ -72,7 +72,7 @@ agent_config = {
 options = {
     "--seed": 42,
     "--no-display": True,
-    "--episodes": 10,
+    "--episodes": 1,
     "--train": True,
     "--test": True,
 }
@@ -81,4 +81,4 @@ options = {
 _, images_per_episode, agent, env = evaluate(env, agent_config, options)
 
 for images in images_per_episode:
-    plot_images(0, images, 0)
+    plot_images(0, images, 0, True)

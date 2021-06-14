@@ -1,0 +1,2 @@
+,solved,number_of_steps,forward_model_calls,key_found,door_found,goal_found,total_nodes,frontier_nodes,time_elapsed
+Experiments/AgentConfig/mcgs_2.yaml42,True,26,47226,67,604,1044,2641,2361,0 days 00:02:09

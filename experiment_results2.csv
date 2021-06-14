@@ -1,0 +1,26 @@
+,solved,number_of_steps,forward_model_calls,key_found,door_found,goal_found,total_nodes,frontier_nodes,time_elapsed
+Experiments/AgentConfig/mcgs_0.yaml1,True,10,9837,24,58,197,516,399,0 days 00:01:52
+Experiments/AgentConfig/mcgs_0.yaml10,False,49,36513,41,62,1080,1480,978,0 days 00:06:00
+Experiments/AgentConfig/mcgs_0.yaml80,True,20,22414,26,233,343,1247,1030,0 days 00:04:18
+Experiments/AgentConfig/mcgs_0.yaml130,True,21,17407,16,58,238,935,711,0 days 00:03:09
+Experiments/AgentConfig/mcgs_0.yaml2000,True,23,20355,8,179,295,862,628,0 days 00:03:50
+Experiments/AgentConfig/mcgs_1.yaml1,True,10,21216,9,59,318,1216,1092,0 days 00:01:54
+Experiments/AgentConfig/mcgs_1.yaml10,True,27,31069,19,198,458,1566,1277,0 days 00:02:27
+Experiments/AgentConfig/mcgs_1.yaml80,True,20,28365,42,219,510,1613,1390,0 days 00:02:19
+Experiments/AgentConfig/mcgs_1.yaml130,True,22,22074,18,47,124,940,705,0 days 00:01:38
+Experiments/AgentConfig/mcgs_1.yaml2000,True,27,29729,11,282,707,1667,1381,0 days 00:02:12
+Experiments/AgentConfig/mcgs_2.yaml1,True,21,51801,9,96,379,2212,1961,0 days 00:02:22
+Experiments/AgentConfig/mcgs_2.yaml10,True,32,40192,31,297,766,1872,1527,0 days 00:01:38
+Experiments/AgentConfig/mcgs_2.yaml80,True,21,35279,30,401,915,2224,1983,0 days 00:01:32
+Experiments/AgentConfig/mcgs_2.yaml130,True,20,39096,21,50,236,2553,2312,0 days 00:01:41
+Experiments/AgentConfig/mcgs_2.yaml2000,True,11,21335,12,62,643,1398,1262,0 days 00:00:55
+Experiments/AgentConfig/mcgs_3.yaml1,True,22,50797,9,66,390,2246,1983,0 days 00:01:38
+Experiments/AgentConfig/mcgs_3.yaml10,True,33,64027,37,109,879,2869,2492,0 days 00:02:00
+Experiments/AgentConfig/mcgs_3.yaml80,True,21,80833,33,516,751,3291,3049,0 days 00:02:42
+Experiments/AgentConfig/mcgs_3.yaml130,True,24,35476,21,67,352,1640,1383,0 days 00:01:00
+Experiments/AgentConfig/mcgs_3.yaml2000,True,19,36344,18,584,1074,2443,2233,0 days 00:01:09
+Experiments/AgentConfig/mcgs_4.yaml1,True,14,40800,9,118,380,2084,1916,0 days 00:00:58
+Experiments/AgentConfig/mcgs_4.yaml10,True,25,52394,36,168,370,2620,2325,0 days 00:01:21
+Experiments/AgentConfig/mcgs_4.yaml80,True,26,73610,45,207,825,3484,3185,0 days 00:02:00
+Experiments/AgentConfig/mcgs_4.yaml130,True,26,53964,21,30,498,3271,2957,0 days 00:01:30
+Experiments/AgentConfig/mcgs_4.yaml2000,True,18,45607,19,461,1823,2852,2649,0 days 00:01:07

@@ -1,0 +1,10 @@
+,Experiments/AgentConfig/mcgs_0.yaml1,Experiments/AgentConfig/mcgs_0.yaml10,Experiments/AgentConfig/mcgs_0.yaml80,Experiments/AgentConfig/mcgs_0.yaml130,Experiments/AgentConfig/mcgs_0.yaml2000,Experiments/AgentConfig/mcgs_1.yaml1,Experiments/AgentConfig/mcgs_1.yaml10,Experiments/AgentConfig/mcgs_1.yaml80,Experiments/AgentConfig/mcgs_1.yaml130,Experiments/AgentConfig/mcgs_1.yaml2000,Experiments/AgentConfig/mcgs_2.yaml1,Experiments/AgentConfig/mcgs_2.yaml10,Experiments/AgentConfig/mcgs_2.yaml80,Experiments/AgentConfig/mcgs_2.yaml130,Experiments/AgentConfig/mcgs_2.yaml2000,Experiments/AgentConfig/mcgs_3.yaml1,Experiments/AgentConfig/mcgs_3.yaml10,Experiments/AgentConfig/mcgs_3.yaml80,Experiments/AgentConfig/mcgs_3.yaml130,Experiments/AgentConfig/mcgs_3.yaml2000,Experiments/AgentConfig/mcgs_4.yaml1,Experiments/AgentConfig/mcgs_4.yaml10,Experiments/AgentConfig/mcgs_4.yaml80,Experiments/AgentConfig/mcgs_4.yaml130,Experiments/AgentConfig/mcgs_4.yaml2000
+solved,True,False,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True
+number_of_steps,10,49,20,21,23,10,27,20,22,27,21,32,21,20,11,22,33,21,24,19,14,25,26,26,18
+forward_model_calls,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+key_found,24,41,26,16,8,9,19,42,18,11,9,31,30,21,12,9,37,33,21,18,9,36,45,21,19
+door_found,58,62,233,58,179,59,198,219,47,282,96,297,401,50,62,66,109,516,67,584,118,168,207,30,461
+goal_found,197,1080,343,238,295,318,458,510,124,707,379,766,915,236,643,390,879,751,352,1074,380,370,825,498,1823
+total_nodes,516,1480,1247,935,862,1216,1566,1613,940,1667,2212,1872,2224,2553,1398,2246,2869,3291,1640,2443,2084,2620,3484,3271,2852
+frontier_nodes,399,978,1030,711,628,1092,1277,1390,705,1381,1961,1527,1983,2312,1262,1983,2492,3049,1383,2233,1916,2325,3185,2957,2649
+time_elapsed,0:01:45,0:05:51,0:04:07,0:02:59,0:03:41,0:01:46,0:02:22,0:02:23,0:01:38,0:02:13,0:02:22,0:01:38,0:01:32,0:01:41,0:00:56,0:01:41,0:02:02,0:02:40,0:01:01,0:01:05,0:00:55,0:01:18,0:01:58,0:01:34,0:01:10

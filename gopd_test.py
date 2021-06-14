@@ -9,7 +9,7 @@ from multiprocessing.pool import Pool
 from gym_minigrid.wrappers import *
 
 from rl_agents.trainer import logger
-from rl_agents.trainer.evaluation import Evaluation
+from EduardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 
 from Environments.MiniGridEnv import MiniGridEnv
@@ -69,7 +69,7 @@ def evaluate(env, agent_config, options):
 
 
 
-env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
+env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
 
 agent_config = {
     "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
@@ -85,7 +85,7 @@ options = {
 
 _, images_per_episode, agent, env = evaluate(env, agent_config, options)
 for images in images_per_episode:
-    plot_images(len(images), images, 0)
+    plot_images(len(images), images, 0, True)
 
 #%%
 import networkx as nx
