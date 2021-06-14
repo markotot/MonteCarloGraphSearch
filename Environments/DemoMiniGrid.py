@@ -35,7 +35,7 @@ class DemoDoorKeyEnv(MiniGridEnv):
                     self.put_obj(Goal(), i, j)
                 elif object == 'Player':
                     self.agent_pos = (i, j)
-                    self.agent_dir = self._rand_int(0, 4)
+                    self.agent_dir = 0
                     self.grid.set(i, j, None)
                 elif object == 'Wall':
                     self.grid.set(i, j, Wall())
