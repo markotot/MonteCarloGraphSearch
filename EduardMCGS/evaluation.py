@@ -127,8 +127,7 @@ class Evaluation(object):
 
     def run_episodes(self):
         images_per_episode = []
-        from tqdm import trange
-        for self.episode in trange(self.num_episodes):
+        for self.episode in range(self.num_episodes):
             images = []
             # Run episode
             terminal = False
