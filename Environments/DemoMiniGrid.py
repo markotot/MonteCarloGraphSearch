@@ -58,6 +58,7 @@ class DemoMiniGrid(AbstractEnv):
         super().__init__(env)
         self.name = "DoorKeyDemo"
         self.env = env
+        self.seed = seed
 
 
     def get_action_list(self):
