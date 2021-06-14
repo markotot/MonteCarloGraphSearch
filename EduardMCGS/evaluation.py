@@ -5,7 +5,6 @@ import os
 from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
-from tensorboardX import SummaryWriter
 
 import rl_agents.trainer.logger
 from rl_agents.agents.common.factory import load_environment, load_agent
@@ -75,11 +74,11 @@ class Evaluation(object):
                                  self.run_directory,
                                  video_callable=(None if self.display_env else False))
         self.episode = 0
-        self.writer = SummaryWriter(str(self.run_directory))
-        self.agent.set_writer(self.writer)
+        #self.writer = SummaryWriter(str(self.run_directory))
+        #self.agent.set_writer(self.writer)
         self.agent.evaluation = self
-        self.write_logging()
-        self.write_metadata()
+        #self.write_logging()
+        #self.write_metadata()
         self.filtered_agent_stats = 0
         self.best_agent_stats = -np.infty, 0
 
@@ -378,6 +377,6 @@ class Evaluation(object):
         if self.training:
             self.save_agent_model("final")
         self.monitor.close()
-        self.writer.close()
+ #       self.writer.close()
         if self.close_env:
             self.env.close()
