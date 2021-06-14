@@ -317,10 +317,10 @@ class Evaluation(object):
     def after_all_episodes(self, episode, rewards):
         rewards = np.array(rewards)
         gamma = self.agent.config.get("gamma", 1)
-        self.writer.add_scalar('episode/length', len(rewards), episode)
-        self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
-        self.writer.add_scalar('episode/return', sum(r*gamma**t for t, r in enumerate(rewards)), episode)
-        self.writer.add_histogram('episode/rewards', rewards, episode)
+#        self.writer.add_scalar('episode/length', len(rewards), episode)
+#        self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
+#        self.writer.add_scalar('episode/return', sum(r*gamma**t for t, r in enumerate(rewards)), episode)
+#        self.writer.add_histogram('episode/rewards', rewards, episode)
         logger.info("Episode {} score: {:.1f}".format(episode, sum(rewards)))
 
     def after_some_episodes(self, episode, rewards,
