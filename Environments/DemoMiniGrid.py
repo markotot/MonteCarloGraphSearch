@@ -13,8 +13,9 @@ class DemoDoorKeyEnv(MiniGridEnv):
     Environment with a door and key, sparse reward
     """
 
-    def __init__(self, ascii, size=8):
+    def __init__(self, ascii, size=8, seed=42):
         self.ascii = ascii
+        self.seed = seed
         super().__init__(
             grid_size=size,
             max_steps=10*size*size
