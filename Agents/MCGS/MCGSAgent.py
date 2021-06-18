@@ -8,7 +8,6 @@ import concurrent.futures
 
 from copy import deepcopy
 from tqdm import trange
-import time
 
 
 class Node:
@@ -26,16 +25,15 @@ class Node:
         self.visits = visits
         self.is_leaf = is_leaf
 
-        if parent is None:
+        if parent is None or MCGSAgent.config['inherit_novelty'] is False:
             self.novelty_value = novelty_value
         else:
-            self.novelty_value = self.parent.novelty_value * 0.5 + novelty_value
+            self.novelty_value = self.parent.novelty_value * MCGSAgent.config['inherit_novelty_factor'] + novelty_value
 
         self.chosen = False
         self.unreachable = False
 
     def uct_value(self):
-
         c = 0.0
         ucb = 0  # c * sqrt(log(self.parent.visits + 1) / self.visits)
         return self.value() + ucb
@@ -89,13 +87,15 @@ class Edge:
 
 class MCGSAgent(AbstractAgent):
 
+    config = None
+
     def __init__(self, env, seed, config, verbose):
         super().__init__(env=env, seed=seed)
 
-        self.config = config
+        MCGSAgent.config = config
         self.verbose = verbose
         self.graph = Graph(seed, config)
-        self.state_database = StateDatabase(config)
+        self.state_database = StateDatabase(config, self)
 
         self.node_counter = 0
         self.edge_counter = 0
@@ -376,9 +376,12 @@ class MCGSAgent(AbstractAgent):
             total_nodes=len(self.graph.graph.nodes),
             frontier_nodes=len(self.graph.frontier),
             forward_model_calls=self.forward_model_calls,
-            key_found=self.state_database.subgoals['key_subgoal'],
-            door_found=self.state_database.subgoals['door_subgoal'],
-            goal_found=self.state_database.subgoals['goal_found'],
+            key_found_nodes=self.state_database.subgoals['key_subgoal'][0],
+            key_found_FMC=self.state_database.subgoals['key_subgoal'][1],
+            door_found_nodes=self.state_database.subgoals['door_subgoal'][0],
+            door_found_FMC=self.state_database.subgoals['door_subgoal'][1],
+            goal_found_nodes=self.state_database.subgoals['goal_found'][0],
+            goal_found_FMC=self.state_database.subgoals['goal_found'][1],
              )
 
         return metrics

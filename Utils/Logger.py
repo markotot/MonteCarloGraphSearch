@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import shutil
 
 from datetime import datetime
 from math import ceil, floor, sqrt
@@ -13,20 +14,24 @@ class Logger:
     file_reroute = "test_reroute.txt"
     file_novel = "test_novel.txt"
 
-    result_folder = "Results/"
+    logs_folder = "Results/Logs/"
+    metrics_folder = "Results/Experiments/"
     directory_path = None
 
     @staticmethod
     def setup(env_info, seed, path):
 
-        if not os.path.isdir(Logger.result_folder):
-            os.mkdir(Logger.result_folder)
+        if not os.path.isdir(Logger.logs_folder.split('/')[0]):
+            os.mkdir(Logger.logs_folder.split('/')[0])
 
-        if not os.path.isdir(Logger.result_folder+env_info):
-            os.mkdir(Logger.result_folder+env_info)
+        if not os.path.isdir(Logger.logs_folder):
+            os.mkdir(Logger.logs_folder)
+
+        if not os.path.isdir(Logger.logs_folder + env_info):
+            os.mkdir(Logger.logs_folder + env_info)
 
         current_time = datetime.now().strftime("%d_%h_%y_%H_%M_%S")
-        Logger.directory_path = Logger.result_folder + env_info + "/" + current_time + "/"
+        Logger.directory_path = Logger.logs_folder + env_info + "/" + current_time + "/"
         if not os.path.isdir(Logger.directory_path):
             os.mkdir(Logger.directory_path)
 
@@ -82,6 +87,31 @@ class Logger:
         Logger.file_reroute.close()
         Logger.file_novel.close()
 
+    @staticmethod
+    def save_experiment_metrics(env_name, experiments, experiment_metrics):
+
+        current_time = datetime.now().strftime("%d_%h_%y_%H_%M_%S")
+        directory_path = Logger.metrics_folder + env_name + "/" + current_time
+
+        #creates Results/Experiments
+        if not os.path.isdir(Logger.metrics_folder):
+            os.mkdir(Logger.metrics_folder)
+
+        #creates Results/Experiments/env_name
+        if not os.path.isdir(Logger.metrics_folder + env_name):
+            os.mkdir(Logger.metrics_folder + env_name)
+
+        #creates full path
+        if not os.path.isdir(directory_path):
+            os.mkdir(f"{directory_path}")
+            os.mkdir(f"{directory_path}/AgentConfigs")
+
+        experiment_metrics.to_csv(f"{directory_path}/experiment_metrics.csv")
+
+        for experiment in experiments:
+            config_name = experiment.split('/')[-1]
+            shutil.copy(experiment, f"{directory_path}/AgentConfigs/{config_name}")
+
 
 def plot_images(number, images, reward, verbose):
     image_len = len(images)
@@ -112,3 +142,6 @@ def plot_images(number, images, reward, verbose):
         plt.show()
     else:
         plt.close()
+
+
+

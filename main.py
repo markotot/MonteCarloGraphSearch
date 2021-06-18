@@ -3,6 +3,7 @@ import yaml
 import time
 import datetime
 import pandas as pd
+import shutil
 from tqdm import tqdm
 from Agents.MCGS.MCGSAgent import MCGSAgent
 
@@ -36,6 +37,7 @@ from Utils.Logger import Logger, plot_images
 #   make novelties be continuous rather than discrete yes/no
 #   parallelize BFS
 #   check only for children
+
 
 def run_experiment(agent_config_path, env_name, seed, verbose=True):
 
@@ -81,11 +83,21 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-8x8-v0'
-    seeds = [42] #, 10, 80, 130, 2000]
-    experiments = [
+    env_name = 'MiniGrid-DoorKey-16x16-v0'
 
-        "Experiments/AgentConfig/mcgs_2.yaml",
+    # 7 easy
+    # 109 medium
+    # 3 medium
+    # 35 hard
+    # 121 very hard
+    seeds = [3, 109, 7, 35, 121]
+    experiments = [
+        #"Experiments/AgentConfig/mcgs_0.yaml",
+        #"Experiments/AgentConfig/mcgs_1.yaml",
+        #"Experiments/AgentConfig/mcgs_2.yaml",
+        #"Experiments/AgentConfig/mcgs_3.yaml",
+        "Experiments/AgentConfig/mcgs_4.yaml",
+        "Experiments/AgentConfig/mcgs_5.yaml",
 
     ]
 
@@ -93,9 +105,12 @@ if __name__ == "__main__":
         'solved',
         'number_of_steps',
         'forward_model_calls',
-        'key_found',
-        'door_found',
-        'goal_found',
+        'key_found_nodes',
+        'key_found_FMC',
+        'door_found_nodes',
+        'door_found_FMC',
+        'goal_found_nodes',
+        'goal_found_FMC',
         'total_nodes',
         'frontier_nodes',
         'time_elapsed'
@@ -106,9 +121,9 @@ if __name__ == "__main__":
     for experiment in loop:
         for seed in seeds:
             loop.set_description(f"Doing seed {seed} for experiment {experiment}")
-            experiment_metrics[experiment + str(seed)] = \
+            experiment_metrics[experiment + "_" + str(seed)] = \
                 run_experiment(experiment, env_name, seed=seed, verbose=True)
 
     experiment_metrics = pd.DataFrame(experiment_metrics,  index=order_metrics).T
-    experiment_metrics.to_csv('experiment_results5.csv')
+    Logger.save_experiment_metrics(env_name, experiments, experiment_metrics)
     print(experiment_metrics)

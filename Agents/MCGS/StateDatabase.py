@@ -4,8 +4,9 @@ from Utils.Logger import Logger
 
 class StateDatabase:
 
-    def __init__(self, config):
+    def __init__(self, config, agent):
 
+        self.agent = agent
         self.config = config
 
         self.x_pos = [0] * 16
@@ -19,9 +20,9 @@ class StateDatabase:
         self.novelty_percentage = config['novelty_percentage']
 
         self.subgoals = {
-            'key_subgoal': -1,
-            'door_subgoal': -1,
-            'goal_found': -1,
+            'key_subgoal': (-1, -1),
+            'door_subgoal': (-1, -1),
+            'goal_found': (-1, -1),
         }
 
     def calculate_novelty(self, observation):
@@ -61,17 +62,17 @@ class StateDatabase:
             self.door_opened()
 
     def key_picked_up(self):
-        if self.subgoals['key_subgoal'] == -1:
-            self.subgoals['key_subgoal'] = self.total_data_points
+        if self.subgoals['key_subgoal'] == (-1, -1):
+            self.subgoals['key_subgoal'] = (self.total_data_points, self.agent.forward_model_calls)
             Logger.log_data(f"Key subgoal found (Total nodes: {self.total_data_points})")
 
     def door_opened(self):
-        if self.subgoals['door_subgoal'] == -1:
-            self.subgoals['door_subgoal'] = self.total_data_points
+        if self.subgoals['door_subgoal'] == (-1, -1):
+            self.subgoals['door_subgoal'] = (self.total_data_points, self.agent.forward_model_calls)
             Logger.log_data(f"Door subgoal found (Total nodes: {self.total_data_points})")
 
     def goal_found(self):
-        if self.subgoals['goal_found'] == -1:
-            self.subgoals['goal_found'] = self.total_data_points
+        if self.subgoals['goal_found'] == (-1, -1):
+            self.subgoals['goal_found'] = (self.total_data_points, self.agent.forward_model_calls)
             Logger.log_data(f"Goal found (Total nodes: {self.total_data_points})")
 

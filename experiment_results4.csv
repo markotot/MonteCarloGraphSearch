@@ -1,6 +1,0 @@
-,solved,number_of_steps,forward_model_calls,key_found,door_found,goal_found,total_nodes,frontier_nodes,time_elapsed
-Experiments/AgentConfig/mcgs_0.yaml1,True,76,228555,38,325,537,1306,531,0 days 03:06:48
-Experiments/AgentConfig/mcgs_1.yaml1,True,83,572576,38,325,571,1394,547,0 days 00:49:52
-Experiments/AgentConfig/mcgs_2.yaml1,True,75,961307,38,325,515,1222,449,0 days 00:45:28
-Experiments/AgentConfig/mcgs_3.yaml1,True,73,1401756,38,325,481,1164,422,0 days 00:42:23
-Experiments/AgentConfig/mcgs_4.yaml1,True,90,2293341,38,325,545,1471,553,0 days 00:54:10
