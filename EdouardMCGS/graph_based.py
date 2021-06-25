@@ -45,6 +45,7 @@ class GraphNode(Node):
             # Simulate transition
             state = safe_deepcopy_env(self.state)
             next_observation, reward, done, _ = self.planner.step(state, action)
+
             # Record the transition
             next_node = self.planner.get_node(next_observation)
             next_node.state = state
@@ -88,6 +89,8 @@ class GraphBasedPlanner(AbstractPlanner):
         self.env = env
         self.nodes = {}
         self.updates_count = defaultdict(int)
+
+
         super().__init__(config)
 
     def reset(self):

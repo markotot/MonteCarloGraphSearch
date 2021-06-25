@@ -124,7 +124,6 @@ class MCGSAgent(AbstractAgent):
 
     def plan(self, draw_graph=True) -> int:
 
-        # TODO: optimize dijkstra, do the checks only after a node has been selected for expansion
         self.graph.set_root_node(self.root_node)
         self.graph.reroute_all()
 

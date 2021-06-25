@@ -1,6 +1,6 @@
 episodes: 10
-num_rollouts: 6
-rollout_depth: 150
+num_rollouts: 80
+rollout_depth: 10
 noisy_frontier_selection: True
 amplitude_factor: 0.2
 noisy_min_value: 0.0001

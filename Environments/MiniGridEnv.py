@@ -5,8 +5,8 @@ import numpy as np
 from gym_minigrid import minigrid
 from Environments.AbstractEnv import AbstractEnv
 
-class MiniGridEnv(AbstractEnv):
 
+class MiniGridEnv(AbstractEnv):
     def __init__(self, name, seed=42):
         env = gym.make(name)
         env.seed(seed)
@@ -15,7 +15,6 @@ class MiniGridEnv(AbstractEnv):
         self.env = env
         self.seed = seed
         self.name = self.env.unwrapped.spec.id
-
 
     def get_action_list(self):
         print("0 - Turn left")

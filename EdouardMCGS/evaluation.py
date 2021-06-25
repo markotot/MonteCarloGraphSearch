@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+from tqdm import trange
 from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
@@ -127,6 +128,12 @@ class Evaluation(object):
 
     def run_episodes(self):
         images_per_episode = []
+        i = 0
+        max_steps = 100
+        iterations = trange(max_steps, leave=True)
+        iterations.set_description(
+            f"Step: {i}")
+
         for self.episode in range(self.num_episodes):
             images = []
             # Run episode
@@ -134,7 +141,8 @@ class Evaluation(object):
             self.seed(self.episode)
             self.reset()
             rewards = []
-            while not terminal:
+
+            for i in iterations:
                 images.append(self.monitor.render(mode='rgb_array', highlight=False))
 
                 # Step until a terminal step is reached
@@ -149,6 +157,8 @@ class Evaluation(object):
                 except AttributeError:
                     pass
 
+                if terminal:
+                    break
             # End of episode
             self.after_all_episodes(self.episode, rewards)
             self.after_some_episodes(self.episode, rewards)

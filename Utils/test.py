@@ -42,7 +42,7 @@ from multiprocessing.pool import Pool
 from gym_minigrid.wrappers import *
 
 from rl_agents.trainer import logger
-from EduardMCGS.evaluation import Evaluation
+from EdouardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 from Environments.DemoMiniGrid import DemoMiniGrid
 from Environments.MiniGridEnv import MiniGridEnv

@@ -130,7 +130,6 @@ class MCTSAgent(AbstractAgent):
 
     def back_propagation(self, node, value):
         y = 0.95
-        # while node is not None:
         while True:
             node.visits += 1
             node.value += value * y

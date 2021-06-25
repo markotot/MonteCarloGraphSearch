@@ -3,7 +3,7 @@ import yaml
 import time
 import datetime
 import pandas as pd
-import shutil
+
 from tqdm import tqdm
 from Agents.MCGS.MCGSAgent import MCGSAgent
 
@@ -83,21 +83,21 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-16x16-v0'
+    env_name = 'MiniGrid-DoorKey-8x8-v0'
 
     # 7 easy
     # 109 medium
     # 3 medium
     # 35 hard
     # 121 very hard
-    seeds = [3, 109, 7, 35, 121]
+    seeds = [7, 8, 9, 10, 11, 12]
     experiments = [
-        #"Experiments/AgentConfig/mcgs_0.yaml",
-        #"Experiments/AgentConfig/mcgs_1.yaml",
-        #"Experiments/AgentConfig/mcgs_2.yaml",
-        #"Experiments/AgentConfig/mcgs_3.yaml",
-        "Experiments/AgentConfig/mcgs_4.yaml",
-        "Experiments/AgentConfig/mcgs_5.yaml",
+        #"AgentConfig/mcgs_0.yaml",
+        #"AgentConfig/mcgs_1.yaml",
+        "AgentConfig/mcgs_2.yaml",
+        "AgentConfig/mcgs_3.yaml",
+        #"AgentConfig/mcgs_6.yaml",
+        #"AgentConfig/mcgs_7.yaml",
 
     ]
 

@@ -11,7 +11,7 @@ from gym_minigrid.wrappers import *
 from rl_agents.trainer import logger
 from EdouardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
-from rl_agents.agents.tree_search.graph_based import GraphNode
+from rl_agents.agents.tree_search.graph_based_stochastic import GraphNode, StochasticGraphBasedPlannerAgent
 from Environments.MiniGridEnv import MiniGridEnv
 from Utils.Logger import plot_images
 
@@ -69,15 +69,16 @@ def evaluate(env, agent_config, options):
 
 
 
-env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
+env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
 
 agent_config = {
-    "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
+    "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",
     "gamma": 0.99,
-    "budget": 8000,
+    "budget": 800,
+    "max_next_states_count": 4,
 }
 options = {
-    "--seed": 35,
+    "--seed": 42,
     "--no-display": True,
     "--episodes": 1,
     "--train": True,

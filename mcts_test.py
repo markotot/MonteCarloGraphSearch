@@ -2,7 +2,7 @@ import os
 from gym_minigrid.wrappers import *
 
 from rl_agents.trainer import logger
-from EduardMCGS.evaluation import Evaluation
+from EdouardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 
 from Environments.MiniGridEnv import MiniGridEnv
@@ -11,7 +11,6 @@ from Utils.Logger import plot_images
 BENCHMARK_FILE = "benchmark_summary"
 LOGGING_CONFIG = "configs/logging.json"
 VERBOSE_CONFIG = "configs/verbose.json"
-
 
 def evaluate(env, agent_config, options):
     """
