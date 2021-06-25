@@ -9,9 +9,9 @@ from multiprocessing.pool import Pool
 from gym_minigrid.wrappers import *
 
 from rl_agents.trainer import logger
-from EduardMCGS.evaluation import Evaluation
+from EdouardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
-
+from rl_agents.agents.tree_search.graph_based import GraphNode
 from Environments.MiniGridEnv import MiniGridEnv
 from Utils.Logger import plot_images
 
@@ -27,6 +27,8 @@ def evaluate(env, agent_config, options):
     :param agent_config: the path of the agent configuration file
     :param options: the evaluation options
     """
+
+    #  to make it work with our MiniGridEnv
     env.unwrapped = env.env.unwrapped
     env.observation_space = env.env.observation_space
     env.reward_range = env.env.reward_range
@@ -35,6 +37,7 @@ def evaluate(env, agent_config, options):
     env.seed = env.env.seed
     env.render = env.env.render
     env.close = env.env.close
+    #  to make it work with our MiniGridEnv
 
     logger.configure()
     # if options['--verbose']:
@@ -59,28 +62,27 @@ def evaluate(env, agent_config, options):
         display_agent=not options["--no-display"],
         display_rewards=not options["--no-display"],
     )
-    if options["--train"]:
-        images_per_episode = evaluation.train()
-    elif options["--test"]:
-        evaluation.test()
-    else:
-        evaluation.close()
+
+    images_per_episode = evaluation.train()
+    print(GraphNode.forward_model_calls)
     return os.path.relpath(evaluation.monitor.directory), images_per_episode, agent, env
 
 
 
-env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
+env = MiniGridEnv('MiniGrid-DoorKey-16x16-v0')
 
 agent_config = {
     "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
     "gamma": 0.99,
+    "budget": 8000,
 }
 options = {
-    "--seed": 42,
+    "--seed": 35,
     "--no-display": True,
     "--episodes": 1,
     "--train": True,
     "--test": True,
+    "--processed": 16
 }
 
 _, images_per_episode, agent, env = evaluate(env, agent_config, options)
