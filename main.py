@@ -7,6 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from Agents.MCGS.MCGSAgent import MCGSAgent
 
+
 from Environments.MiniGridEnv import MiniGridEnv
 from Utils.Logger import Logger, plot_images
 
@@ -45,7 +46,7 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
         agent_config = yaml.safe_load(stream)
 
     env = MiniGridEnv(env_name, seed=seed)
-    Logger.setup(env_info=env.name, seed=seed, path=str(seed))
+    Logger.setup(env_info=env.name, path=str(seed))
 
     agent = MCGSAgent(env, seed=seed, config=agent_config, verbose=verbose)
     images = [env.render()]
@@ -83,19 +84,21 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-8x8-v0'
+    env_name = 'MiniGrid-DoorKey-16x16-v0'
 
     # 7 easy
     # 109 medium
     # 3 medium
     # 35 hard
     # 121 very hard
-    seeds = [7, 8, 9, 10, 11, 12]
+    seeds = [7]
     experiments = [
         #"AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",
         "AgentConfig/mcgs_2.yaml",
-        "AgentConfig/mcgs_3.yaml",
+        #"AgentConfig/mcgs_3.yaml",
+        #"AgentConfig/mcgs_4.yaml",
+        #"AgentConfig/mcgs_5.yaml",
         #"AgentConfig/mcgs_6.yaml",
         #"AgentConfig/mcgs_7.yaml",
 
@@ -116,6 +119,7 @@ if __name__ == "__main__":
         'time_elapsed'
     ]
 
+    Logger.setup_experiment_folder(env_name)
     loop = tqdm(experiments)
     experiment_metrics = dict()
     for experiment in loop:
@@ -123,7 +127,6 @@ if __name__ == "__main__":
             loop.set_description(f"Doing seed {seed} for experiment {experiment}")
             experiment_metrics[experiment + "_" + str(seed)] = \
                 run_experiment(experiment, env_name, seed=seed, verbose=True)
+            metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
+            Logger.save_experiment_metrics(experiment, metrics_data_frame)
 
-    experiment_metrics = pd.DataFrame(experiment_metrics,  index=order_metrics).T
-    Logger.save_experiment_metrics(env_name, experiments, experiment_metrics)
-    print(experiment_metrics)

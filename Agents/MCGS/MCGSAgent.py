@@ -1,6 +1,6 @@
 from Agents.AbstractAgent import AbstractAgent
 from Agents.MCGS.Graph import Graph
-from Agents.MCGS.StateDatabase import StateDatabase
+from Utils.StateDatabase import StateDatabase
 from Utils.Logger import Logger
 
 import numpy as np
@@ -90,10 +90,9 @@ class MCGSAgent(AbstractAgent):
     config = None
 
     def __init__(self, env, seed, config, verbose):
-        super().__init__(env=env, seed=seed)
-
+        super().__init__(env=env, seed=seed, verbose=verbose)
         MCGSAgent.config = config
-        self.verbose = verbose
+
         self.graph = Graph(seed, config)
         self.state_database = StateDatabase(config, self)
 

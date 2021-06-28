@@ -16,10 +16,12 @@ class Logger:
 
     logs_folder = "Results/Logs/"
     metrics_folder = "Results/Experiments/"
+    experiment_folder= ""
+
     directory_path = None
 
     @staticmethod
-    def setup(env_info, seed, path):
+    def setup(env_info, path):
 
         if not os.path.isdir(Logger.logs_folder.split('/')[0]):
             os.mkdir(Logger.logs_folder.split('/')[0])
@@ -88,29 +90,30 @@ class Logger:
         Logger.file_novel.close()
 
     @staticmethod
-    def save_experiment_metrics(env_name, experiments, experiment_metrics):
+    def setup_experiment_folder(env_name):
 
         current_time = datetime.now().strftime("%d_%h_%y_%H_%M_%S")
-        directory_path = Logger.metrics_folder + env_name + "/" + current_time
+        Logger.experiment_folder = Logger.metrics_folder + env_name + "/" + current_time
 
-        #creates Results/Experiments
+        # creates Results/Experiments
         if not os.path.isdir(Logger.metrics_folder):
             os.mkdir(Logger.metrics_folder)
 
-        #creates Results/Experiments/env_name
+        # creates Results/Experiments/env_name
         if not os.path.isdir(Logger.metrics_folder + env_name):
             os.mkdir(Logger.metrics_folder + env_name)
 
-        #creates full path
-        if not os.path.isdir(directory_path):
-            os.mkdir(f"{directory_path}")
-            os.mkdir(f"{directory_path}/AgentConfigs")
+        # creates full path
+        if not os.path.isdir(Logger.experiment_folder):
+            os.mkdir(f"{Logger.experiment_folder}")
+            os.mkdir(f"{Logger.experiment_folder}/AgentConfigs")
 
-        experiment_metrics.to_csv(f"{directory_path}/experiment_metrics.csv")
+    @staticmethod
+    def save_experiment_metrics(experiment, experiment_metrics):
 
-        for experiment in experiments:
-            config_name = experiment.split('/')[-1]
-            shutil.copy(experiment, f"{directory_path}/AgentConfigs/{config_name}")
+        experiment_metrics.to_csv(f"{Logger.experiment_folder}/experiment_metrics.csv")
+        config_name = experiment.split('/')[-1]
+        shutil.copy(experiment, f"{Logger.experiment_folder}/AgentConfigs/{config_name}")
 
 
 def plot_images(number, images, reward, verbose):

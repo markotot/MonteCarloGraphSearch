@@ -1,0 +1,5 @@
+episodes: 10
+num_rollouts: 16
+rollout_depth: 50
+novelty_function_name: "simple_novelty_function"
+novelty_percentage: 0.25

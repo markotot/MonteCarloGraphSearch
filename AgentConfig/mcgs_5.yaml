@@ -1,4 +1,4 @@
-episodes: 10
+episodes: 5
 num_rollouts: 4
 rollout_depth: 200
 noisy_frontier_selection: True

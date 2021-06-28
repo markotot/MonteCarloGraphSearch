@@ -17,87 +17,21 @@ class Graph:
 
     def __init__(self):
         self.graph = nx.DiGraph()
-        self.frontier = []
-
         self.root_node = None
         self.new_nodes = []
 
     def add_node(self, node):
         self.graph.add_node(node.id, info=node)
+        self.new_nodes.append(node)
 
     def add_edge(self, edge):
         self.graph.add_edge(edge.node_from.id, edge.node_to.id, info=edge)
-        if edge.node_to.unreachable:
-            edge.node_to.parent = edge.node_from
-            edge.node_to.action = edge.action
-            edge.node_to.unreachable = False
-
-    def add_to_frontier(self, node):
-        self.frontier.append(node)
-        self.new_nodes.append(node)
-
-    def remove_from_frontier(self, node):
-        self.frontier.remove(node)
-
-    def in_frontier(self, node):
-        return node in self.frontier
 
     def save_graph(self, path):
         nx.readwrite.write_gpickle(self.graph, path)
 
     def load_graph(self, path):
         self.graph = nx.readwrite.read_gpickle(path)
-
-    def select_frontier_node(self, noisy=False):
-        selectable_nodes = [x for x in self.frontier if x.unreachable is False]
-
-        if len(selectable_nodes) == 0:
-            return None
-        else:
-
-            if noisy:
-                amplitude = self.get_best_node(only_reachable=True).uct_value() * 0.2
-                noise = self.random.normal(0, amplitude, len(selectable_nodes))
-            else:
-                noise = 0
-
-            best_node = selectable_nodes[0]
-            best_node_value = selectable_nodes[0].uct_value() + noise[0]
-            for i, n in enumerate(selectable_nodes):
-                if n.uct_value() + noise[i] > best_node_value:
-                    best_node = n
-                    best_node_value = n.uct_value() + noise[i]
-
-
-            return best_node
-
-
-    def reroute_paths(self, root_node):
-        self.root_node = root_node
-
-        for node_id, node in self.graph.nodes.data('info'):
-            if root_node.id != node_id:
-                if self.has_path(self.root_node, node):
-                    self.reroute_path(self.root_node, node)
-                    node.unreachable = False
-                else:
-                    node.unreachable = True
-
-    def reroute_path(self, node_from, node_to):
-        nodes, actions = self.get_path(node_from, node_to)
-        node_path = [self.get_node_info(x) for x in nodes]
-        node_to.reroute(node_path, actions)
-
-    def get_path(self, node_from, node_to):
-        nodes = nx.dijkstra_path(self.graph, node_from.id, node_to.id)
-        actions = []
-        for i in range(len(nodes) - 1):
-            actions.append(self.get_edge_info(self.get_node_info(nodes[i]), self.get_node_info(nodes[i + 1])).action)
-
-        return nodes, actions
-
-    def has_path(self, node_from, node_to):
-        return nx.has_path(self.graph, node_from.id, node_to.id)
 
     def get_node_info(self, id):
         return self.graph.nodes[id]["info"]
@@ -110,24 +44,6 @@ class Graph:
             if out_degree == degree or (out_degree == degree + 1 and self.graph.has_edge(node, node)):
                 node_list.append(self.graph.nodes[node]["info"])
         return node_list
-
-    def get_best_node(self, only_reachable=False):
-
-        nodes = list(nx.get_node_attributes(self.graph, 'info').values())
-        nodes.remove(self.root_node)
-
-        if only_reachable:
-            selectable_nodes = [x for x in nodes if x.unreachable is False]
-        else:
-            selectable_nodes = nodes
-
-        best_node = selectable_nodes[0]
-        best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
-        for n in selectable_nodes:
-            if best_node_value < n.value() + self.get_edge_info(n.parent, n).reward:
-                best_node = n
-
-        return best_node
 
     def has_node(self, ID):
         return self.graph.has_node(ID)
@@ -167,24 +83,24 @@ class Graph:
         for node in nodes_info.values():
 
             if node.is_leaf:
-                value_map[node.id] = str(round(node.value(), 2))
+                value_map[node.id] = str(round(node.uct_value(), 2))
                 node_size_map.append(30)
             else:
-                value_map[node.id] = str(round(node.value(), 2))
+                value_map[node.id] = str(round(node.uct_value(), 2))
                 node_size_map.append(30)
 
             if node == self.root_node:
                 node_color_map.append('blue')
             elif node.chosen:
                 node_color_map.append('lightblue')
-            elif node.unreachable:
-                node_color_map.append('grey')
-            elif node in self.new_nodes:
-                node_color_map.append('pink')
             elif node.done:
                 node_color_map.append('green')
-            elif node in self.frontier:
+            elif node.is_leaf:
                 node_color_map.append('red')
+            elif node.observation[3] == 'key':
+                node_color_map.append('black')
+            elif node in self.new_nodes:
+                node_color_map.append('pink')
             else:
                 node_color_map.append('orange')
 

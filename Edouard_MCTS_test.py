@@ -19,6 +19,8 @@ def evaluate(env, agent_config, options):
     :param agent_config: the path of the agent configuration file
     :param options: the evaluation options
     """
+
+    """
     env.unwrapped = env.env.unwrapped
     env.observation_space = env.env.observation_space
     env.reward_range = env.env.reward_range
@@ -27,6 +29,7 @@ def evaluate(env, agent_config, options):
     env.seed = env.env.seed
     env.render = env.env.render
     env.close = env.env.close
+    """
 
     logger.configure()
     # if options['--verbose']:
@@ -61,7 +64,7 @@ def evaluate(env, agent_config, options):
 
 
 
-env = MiniGridEnv('MiniGrid-DoorKey-5x5-v0')
+env = gym.make('MiniGrid-DoorKey-5x5-v0')
 
 agent_config = {
     "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
