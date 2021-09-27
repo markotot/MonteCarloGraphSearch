@@ -12,7 +12,7 @@ from rl_agents.trainer import logger
 from EdouardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 from rl_agents.agents.tree_search.graph_based_stochastic import GraphNode, StochasticGraphBasedPlannerAgent
-from Environments.MiniGridEnv import MiniGridEnv
+from Environments.MyMinigridEnv import MyMinigridEnv
 from Utils.Logger import plot_images
 
 BENCHMARK_FILE = "benchmark_summary"
@@ -69,7 +69,7 @@ def evaluate(env, agent_config, options):
 
 
 
-env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
+env = MyMinigridEnv('MiniGrid-DoorKey-8x8-v0')
 
 agent_config = {
     "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",

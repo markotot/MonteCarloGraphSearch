@@ -1,8 +1,8 @@
 from EdouardMCGS.run_experiments import run_experiment
-from Environments.MiniGridEnv import MiniGridEnv
+from Environments.MyMinigridEnv import MyMinigridEnv
 from Utils.Logger import plot_images
 
-env = MiniGridEnv('MiniGrid-DoorKey-8x8-v0')
+env = MyMinigridEnv('MiniGrid-DoorKey-8x8-v0')
 
 agent_config = {
     "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",

@@ -1,4 +1,4 @@
-episodes: 5
+episodes: 10
 num_rollouts: 16
 rollout_depth: 50
 noisy_frontier_selection: True
@@ -11,6 +11,6 @@ novelty_function_name: "simple_novelty_function"
 novelty_factor: 0.01
 novelty_percentage: 0.25
 add_nodes_during_rollout: True
-only_add_novel_states: False
+only_add_novel_states: True
 use_back_propagation: True
-use_disabled_actions: True
+use_disabled_actions: False

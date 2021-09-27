@@ -5,7 +5,7 @@ from rl_agents.trainer import logger
 from EdouardMCGS.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 
-from Environments.MiniGridEnv import MiniGridEnv
+from Environments.MyMinigridEnv import MyMinigridEnv
 from Utils.Logger import plot_images
 
 BENCHMARK_FILE = "benchmark_summary"

@@ -8,8 +8,12 @@ from tqdm import tqdm
 from Agents.MCGS.MCGSAgent import MCGSAgent
 
 
-from Environments.MiniGridEnv import MiniGridEnv
+from Environments.MyMinigridEnv import MyMinigridEnv
+from Environments.CustomDoorKeyEnv import CustomDoorKey
 from Utils.Logger import Logger, plot_images
+
+#TODO: Differences to Go-Explore
+#   1) Propagating novelty bonus
 
 # TODO: BUGS -
 #  1) should be fixed --- fricking OOP --- action for step is sometimes None during rollout, very rarely but can happen (16x16, episodes=5, num_rollouts=24, rollout_depth=200)
@@ -27,6 +31,7 @@ from Utils.Logger import Logger, plot_images
 #  5) try a Value Function with exploration
 #  6) compare with a state of the art MCTS
 #  7) test the disabled actions and see if it's an improvement or not
+#  8) After finding a done node, optimize the path to it first
 
 # TODO: restrictions
 #  1) node can't have edge into itself (problem with empty frontier)
@@ -39,24 +44,33 @@ from Utils.Logger import Logger, plot_images
 #   parallelize BFS
 #   check only for children
 
+def load_agent_configuration(path):
+    with open(path, 'r') as stream:
+        return yaml.safe_load(stream)
 
-def run_experiment(agent_config_path, env_name, seed, verbose=True):
+def create_environment(env_name, env_seed):
+    if "Custom" in env_name:
+        return CustomDoorKey(size=16)
+    else:
+        return MyMinigridEnv(env_name, seed=env_seed)
 
-    with open(agent_config_path, 'r') as stream:
-        agent_config = yaml.safe_load(stream)
 
-    env = MiniGridEnv(env_name, seed=seed)
-    Logger.setup(env_info=env.name, path=str(seed))
+def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=True):
 
-    agent = MCGSAgent(env, seed=seed, config=agent_config, verbose=verbose)
+    agent_config = load_agent_configuration(agent_config_path)
+    env = create_environment(env_name, env_seed)
+
+    Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
+    agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
+
     images = [env.render()]
     total_reward = 0
-
     if verbose:
         env.get_action_list()
         print(agent.info())
         plt.imshow(images[0])
         plt.show()
+        plt.close()
 
     start_time = time.time()
     for i in range(100):
@@ -69,11 +83,11 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
             break
     end_time = time.time()
 
-    Logger.log_data(f"Game finished (Total nodes: {agent.state_database.total_data_points})")
+    Logger.log_data(f"Game finished (Total nodes: {agent.novelty_stats.total_data_points})")
     Logger.close()
     agent.graph.save_graph("graph")
 
-    plot_images(seed, images, total_reward, verbose)
+    plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward, verbose)
 
     metrics = agent.get_metrics()
     metrics.update(solved=total_reward > 0)
@@ -85,14 +99,18 @@ def run_experiment(agent_config_path, env_name, seed, verbose=True):
 if __name__ == "__main__":
 
     env_name = 'MiniGrid-DoorKey-16x16-v0'
-
+    #env_name = 'MiniGrid-Empty-8x8-v0'
+    #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
     # 109 medium
     # 3 medium
     # 35 hard
     # 121 very hard
-    seeds = [7]
-    experiments = [
+
+    agent_seeds = range(1)
+    #env_seeds = range(1)
+    env_seeds = [109]#, 109, 3, 35, 121]
+    agent_configs = [
         #"AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",
         "AgentConfig/mcgs_2.yaml",
@@ -120,13 +138,14 @@ if __name__ == "__main__":
     ]
 
     Logger.setup_experiment_folder(env_name)
-    loop = tqdm(experiments)
+    loop = tqdm(agent_configs)
     experiment_metrics = dict()
-    for experiment in loop:
-        for seed in seeds:
-            loop.set_description(f"Doing seed {seed} for experiment {experiment}")
-            experiment_metrics[experiment + "_" + str(seed)] = \
-                run_experiment(experiment, env_name, seed=seed, verbose=True)
-            metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
-            Logger.save_experiment_metrics(experiment, metrics_data_frame)
+    for agent_config in loop:
+        for env_seed in env_seeds:
+            for agent_seed in agent_seeds:
+                loop.set_description(f"env: {env_seed} agent_seed: {agent_seed} agent_config: {agent_config}")
+                experiment_metrics[f"{agent_config}_{env_seed}_{agent_seed}"] = \
+                    run_experiment(agent_config, env_name, env_seed=env_seed, agent_seed=agent_seed, verbose=True)
+                metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
+                Logger.save_experiment_metrics(agent_config, metrics_data_frame)
 

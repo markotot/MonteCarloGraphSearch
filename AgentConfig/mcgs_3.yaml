@@ -1,5 +1,5 @@
-episodes: 5
-num_rollouts: 32
+episodes: 10
+num_rollouts: 16
 rollout_depth: 50
 noisy_frontier_selection: True
 amplitude_factor: 0.2
@@ -13,4 +13,4 @@ novelty_percentage: 0.25
 add_nodes_during_rollout: True
 only_add_novel_states: False
 use_back_propagation: True
-use_disabled_actions: True
+use_disabled_actions: False

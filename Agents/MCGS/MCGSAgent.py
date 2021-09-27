@@ -1,7 +1,12 @@
 from Agents.AbstractAgent import AbstractAgent
 from Agents.MCGS.Graph import Graph
-from Utils.StateDatabase import StateDatabase
+
+from Environments.MyMinigridEnv import EnvType
+from Novelty.DoorKeyNovelty import DoorKeyNovelty
+from Novelty.EmptyNovelty import EmptyNovelty
 from Utils.Logger import Logger
+
+
 
 import numpy as np
 import concurrent.futures
@@ -94,7 +99,13 @@ class MCGSAgent(AbstractAgent):
         MCGSAgent.config = config
 
         self.graph = Graph(seed, config)
-        self.state_database = StateDatabase(config, self)
+
+        if env.env_type == EnvType.DoorKey:
+            self.novelty_stats = DoorKeyNovelty(config, self)
+        elif env.env_type == EnvType.Empty:
+            self.novelty_stats = EmptyNovelty(config, self)
+        else:
+            raise ValueError
 
         self.node_counter = 0
         self.edge_counter = 0
@@ -121,6 +132,8 @@ class MCGSAgent(AbstractAgent):
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
 
+        self.start_node = self.root_node
+
     def plan(self, draw_graph=True) -> int:
 
         self.graph.set_root_node(self.root_node)
@@ -143,11 +156,14 @@ class MCGSAgent(AbstractAgent):
                 children = self.expansion(node, selection_env)
 
             for c in children:
-                reward, novelties = self.simulation(c, selection_env)
+                child_average_reward, novelties = self.simulation(c, selection_env)
                 if self.add_nodes_during_rollout:
-                    self.add_novelties_to_graph(novelties)
+                    rollout_nodes, rewards = self.add_novelties_to_graph(novelties)
                 if self.use_back_propagation:
-                    self.back_propagation(c, reward)
+                    if self.add_nodes_during_rollout:
+                        for i, node in enumerate(rollout_nodes):
+                            self.back_propagation(node, rewards[i])
+                    self.back_propagation(c, child_average_reward)
 
         if draw_graph:
             self.graph.draw_graph()
@@ -189,7 +205,7 @@ class MCGSAgent(AbstractAgent):
             self.forward_model_calls += 1
             current_observation = expansion_env.get_observation()
 
-            child = self.add_new_observation(current_observation, node, action, reward, done)
+            child, reward = self.add_new_observation(current_observation, node, action, reward, done)
             if child is not None:
                 new_nodes.append(child)
 
@@ -250,11 +266,13 @@ class MCGSAgent(AbstractAgent):
 
     def add_novelties_to_graph(self, paths):
 
+        nodes = []
+        node_rewards = []
         for path in paths:
             for idx, step in enumerate(path):
 
                 observation = step[1]
-                novelty = self.state_database.calculate_novelty(observation)
+                novelty = self.novelty_stats.calculate_novelty(observation)
                 if self.graph.has_node(observation) is False and (novelty > 0 or self.only_add_novel_states is False):
 
                     for i in range(idx + 1):
@@ -264,14 +282,16 @@ class MCGSAgent(AbstractAgent):
                         action = step_i[2]
                         reward = step_i[3]
                         done = step_i[4]
-                        novelty = self.state_database.calculate_novelty(current_observation)
+                        novelty = self.novelty_stats.calculate_novelty(current_observation)
                         parent_node = self.graph.get_node_info(previous_observation)
 
-                        self.add_new_observation(current_observation, parent_node, action, reward, done)
-
+                        node, node_reward = self.add_new_observation(current_observation, parent_node, action, reward, done)
+                        nodes.append(node)
+                        node_rewards.append(node_reward)
                     if novelty >= 1:
                         node = self.graph.get_node_info(observation)
                         Logger.log_novel_data(f"Novel: {self.agent_position(node)}")
+        return nodes, node_rewards
 
     def add_new_observation(self, current_observation, parent_node, action, reward, done):
 
@@ -280,11 +300,15 @@ class MCGSAgent(AbstractAgent):
             if self.graph.has_node(current_observation) is False:  # if the node is new, create it and add to the graph
                 child = Node(ID=current_observation, parent=parent_node,
                              is_leaf=True, done=done, action=action, reward=reward, visits=0,
-                             novelty_value=self.state_database.calculate_novelty(current_observation))
+                             novelty_value=self.novelty_stats.calculate_novelty(current_observation))
                 self.add_node(child)
                 new_node = child
             else:  # if the node exists, get it
                 child = self.graph.get_node_info(current_observation)
+                # MODIFICATION TEST AND REMOVE IF BAD
+                #if child.is_leaf:
+                #    new_node = child
+
                 if child.unreachable is True and child != self.root_node:  # if child was unreachable make it reachable through this parent
                     child.parent = parent_node
                     child.action = action
@@ -294,7 +318,18 @@ class MCGSAgent(AbstractAgent):
                         action=action, reward=reward, done=done)
             self.add_edge(edge)
 
-            return new_node
+            # revalue reward for optimal path
+            if done is True:
+                path, actions = self.graph.get_path(self.root_node, child)
+                revalue_env = deepcopy(self.env)
+                for i, action in enumerate(actions):
+                    s, r, _, _ = revalue_env.step(action)
+                    self.forward_model_calls += 1
+                reward = r
+                child.reward = reward
+                edge.reward = reward
+
+        return new_node, reward
 
     def get_optimal_action(self, node):
 
@@ -314,7 +349,7 @@ class MCGSAgent(AbstractAgent):
 
         best_node = self.graph.get_best_node(only_reachable=True)
         if best_node.done is True:
-            self.state_database.goal_found()
+            self.novelty_stats.goal_found()
 
         while best_node.parent != self.root_node:
             best_node = best_node.parent
@@ -356,7 +391,7 @@ class MCGSAgent(AbstractAgent):
                                       f" Parent: {str(self.agent_position(node.parent)):<12}"
                                       f" Action: {self.env.agent_action_mapper(node.action):<16}")
 
-            self.state_database.update_posterior(node.id)
+            self.novelty_stats.update_posterior(node.id)
 
     def add_edge(self, edge, who="Expansion"):
         if not self.graph.has_edge(edge):
@@ -374,12 +409,7 @@ class MCGSAgent(AbstractAgent):
             total_nodes=len(self.graph.graph.nodes),
             frontier_nodes=len(self.graph.frontier),
             forward_model_calls=self.forward_model_calls,
-            key_found_nodes=self.state_database.subgoals['key_subgoal'][0],
-            key_found_FMC=self.state_database.subgoals['key_subgoal'][1],
-            door_found_nodes=self.state_database.subgoals['door_subgoal'][0],
-            door_found_FMC=self.state_database.subgoals['door_subgoal'][1],
-            goal_found_nodes=self.state_database.subgoals['goal_found'][0],
-            goal_found_FMC=self.state_database.subgoals['goal_found'][1],
              )
 
+        metrics.update(self.novelty_stats.get_metrics())
         return metrics

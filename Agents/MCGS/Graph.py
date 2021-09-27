@@ -97,6 +97,10 @@ class Graph:
 
         return nodes, actions
 
+    def get_path_length(self, node_from, node_to):
+        nodes = nx.dijkstra_path(self.graph, node_from.id, node_to.id)
+        return len(nodes)
+
     def has_path(self, node_from, node_to):
         return nx.has_path(self.graph, node_from.id, node_to.id)
 

@@ -1,8 +1,13 @@
 from Agents.AbstractAgent import AbstractAgent
 from Agents.MCTS.Graph import Graph
 
+from Environments.MyMinigridEnv import EnvType
+from Novelty.DoorKeyNovelty import DoorKeyNovelty
+from Novelty.EmptyNovelty import EmptyNovelty
+
 from Utils.Logger import Logger
-from Utils.StateDatabase import StateDatabase
+
+
 from math import sqrt, log
 from copy import deepcopy
 from tqdm import trange
@@ -61,7 +66,12 @@ class MCTSAgent(AbstractAgent):
         MCTSAgent.config = config
 
         self.graph = Graph()
-        self.state_database = StateDatabase(config, self)
+        if env.env_type == EnvType.DoorKey:
+            self.novelty_stats = DoorKeyNovelty(config, self)
+        elif env.env_type == EnvType.Empty:
+            self.novelty_stats = EmptyNovelty(config, self)
+        else:
+            raise ValueError
 
         self.node_counter = 0
         self.edge_counter = 0
@@ -190,7 +200,7 @@ class MCTSAgent(AbstractAgent):
     def add_node(self, node):
         Logger.log_graph_data(node.observation)
         self.graph.add_node(node)
-        self.state_database.update_posterior(node.observation)
+        self.novelty_stats.update_posterior(node.observation)
 
     def select_child(self, node, criteria="uct"):
 
@@ -217,3 +227,14 @@ class MCTSAgent(AbstractAgent):
         agent_door_open = node.id[4]
         agent_door_locked = node.id[5]
         return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_has_key, agent_door_open, agent_door_locked])
+
+    def get_metrics(self):
+
+        metrics = dict(
+            total_nodes=len(self.graph.graph.nodes),
+            #frontier_nodes=len(self.graph.frontier),
+            #forward_model_calls=self.forward_model_calls,
+             )
+
+        #metrics.update(self.novelty_stats.get_metrics())
+        return metrics

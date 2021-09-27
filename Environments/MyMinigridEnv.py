@@ -1,12 +1,18 @@
 from copy import deepcopy
-
-import gym
 import numpy as np
-from gym_minigrid import minigrid
+import gym
 from Environments.AbstractEnv import AbstractEnv
+from gym_minigrid import minigrid
+from enum import Enum
+import cv2
 
 
-class MiniGridEnv(AbstractEnv):
+class EnvType(Enum):
+    Empty = 0
+    DoorKey = 1
+
+
+class MyMinigridEnv(AbstractEnv):
     def __init__(self, name, seed=42):
         env = gym.make(name)
         env.seed(seed)
@@ -15,6 +21,13 @@ class MiniGridEnv(AbstractEnv):
         self.env = env
         self.seed = seed
         self.name = self.env.unwrapped.spec.id
+
+        if "DoorKey" in name:
+            self.env_type = EnvType.DoorKey
+        elif "Empty" in name:
+            self.env_type = EnvType.Empty
+        else:
+            assert False
 
     def get_action_list(self):
         print("0 - Turn left")
@@ -27,6 +40,11 @@ class MiniGridEnv(AbstractEnv):
 
     def render(self):
         return self.env.render(mode='rgb_array', highlight=False)
+
+    def image_observation(self, size):
+        image = self.render()
+        return cv2.resize(image, dsize=(size, size), interpolation=cv2.INTER_CUBIC)
+
 
     def get_agent_position(self):
         agent_pos_x = self.env.agent_pos[0]
@@ -48,6 +66,17 @@ class MiniGridEnv(AbstractEnv):
                 }[action]
 
     def get_observation(self):
+        observation = None
+        if self.env_type == EnvType.Empty:
+            observation = self.get_observation_empty()
+        elif self.env_type == EnvType.DoorKey:
+            observation = self.get_observation_door_key()
+        else:
+            assert False
+        return observation
+
+    def get_observation_door_key(self):
+
         agent_pos_x = self.env.agent_pos[0]
         agent_pos_y = self.env.agent_pos[1]
         agent_dir = self.env.agent_dir
@@ -58,3 +87,11 @@ class MiniGridEnv(AbstractEnv):
         grid = [('empty' if tile is None else tile.type) for tile in self.env.grid.grid]
 
         return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_carry] + doors_open + doors_locked + grid)
+
+    def get_observation_empty(self):
+        agent_pos_x = self.env.agent_pos[0]
+        agent_pos_y = self.env.agent_pos[1]
+        agent_dir = self.env.agent_dir
+        grid = [('empty' if tile is None else tile.type) for tile in self.env.grid.grid]
+
+        return tuple([agent_pos_x, agent_pos_y, agent_dir] + grid)

@@ -1,10 +1,9 @@
 from gym import Env
 import random
 
+
 class AbstractEnv:
-
     def __init__(self, env: Env):
-
         self.env = env
         self.action_space = self.env.action_space
         self.action = None
@@ -13,7 +12,6 @@ class AbstractEnv:
         self.reward = None
         self.done = None
         self.info = None
-
         self.reset()
 
     def step(self, action):

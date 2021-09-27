@@ -1,10 +1,10 @@
-episodes: 40
-num_rollouts: 4
+episodes: 10
+num_rollouts: 16
 rollout_depth: 50
 noisy_frontier_selection: True
 amplitude_factor: 0.2
 noisy_min_value: 0.0001
-use_novelty: True
+use_novelty: False
 inherit_novelty: True
 inherit_novelty_factor: 0.5
 novelty_function_name: "simple_novelty_function"
@@ -13,4 +13,4 @@ novelty_percentage: 0.25
 add_nodes_during_rollout: True
 only_add_novel_states: False
 use_back_propagation: True
-use_disabled_actions: True
+use_disabled_actions: False
