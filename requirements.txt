@@ -1,0 +1,10 @@
+docopt==0.6.2
+pandas==1.2.4
+rl_agents==1.0.dev0
+networkx==2.5.1
+tqdm==4.59.0
+gym_minigrid==1.0.2
+matplotlib==3.3.4
+numpy==1.19.5
+gym==0.18.3
+PyYAML==5.4.1
