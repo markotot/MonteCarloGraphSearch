@@ -16,6 +16,9 @@ from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
 from rl_agents.trainer.monitor import MonitorV2
 
+from Environments.metrics import Metrics
+from Environments.AbstractEnv import AbstractEnv
+
 logger = logging.getLogger(__name__)
 
 
@@ -136,8 +139,6 @@ class Evaluation(object):
 
         for self.episode in range(self.num_episodes):
             images = []
-            # Run episode
-            terminal = False
             self.seed(self.episode)
             self.reset()
             rewards = []
@@ -149,15 +150,11 @@ class Evaluation(object):
                 reward, terminal = self.step()
                 rewards.append(reward)
 
-                # Catch interruptions
-                try:
-                    if self.env.unwrapped.done:
-                        images.append(self.monitor.render(mode='rgb_array', highlight=False))
-                        break
-                except AttributeError:
-                    pass
-
                 if terminal:
+                    Metrics.solved = True
+                    Metrics.solved_steps = i
+                    Metrics.solved_fmc = AbstractEnv.forward_model_calls
+                    images.append(self.monitor.render(mode='rgb_array', highlight=False))
                     break
             # End of episode
             self.after_all_episodes(self.episode, rewards)
@@ -184,6 +181,8 @@ class Evaluation(object):
         # Step the environment
         previous_observation, action = self.observation, actions[0]
         self.observation, reward, terminal, info = self.monitor.step(action)
+
+
 
         # Record the experience.
         try:

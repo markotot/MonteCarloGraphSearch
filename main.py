@@ -30,12 +30,12 @@ from Utils.Logger import Logger, plot_images
 
 # TODO: restrictions
 #  1) node can't have edge into itself (problem with empty frontier)
-#  2) stochastic environment not supported
+#  2) stochastic environment not supported/tested
 #  3) partial observable env not supported, states need to be MDP
 #  4) env isn't perfect for rollouts - more moves you make in the env, less the reward - meaning later rollouts give less reward
 
 # TODO next:
-#   make novelties be continuous rather than discrete yes/no
+#   make novelties be continuous rather than discrete yes/no (DONE)
 #   parallelize BFS
 #   check only for children
 

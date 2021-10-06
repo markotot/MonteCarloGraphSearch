@@ -10,6 +10,7 @@ from Agents.MCGS.MCGSAgent import MCGSAgent
 
 from Environments.MyMinigridEnv import MyMinigridEnv
 from Environments.CustomDoorKeyEnv import CustomDoorKey
+from Environments.AbstractEnv import AbstractEnv
 from Utils.Logger import Logger, plot_images
 
 #TODO: Differences to Go-Explore
@@ -65,6 +66,7 @@ def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=Tr
 
     images = [env.render()]
     total_reward = 0
+
     if verbose:
         env.get_action_list()
         print(agent.info())
@@ -93,12 +95,13 @@ def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=Tr
     metrics.update(solved=total_reward > 0)
     metrics.update(number_of_steps=i)
     metrics.update(time_elapsed=datetime.timedelta(seconds=int(end_time - start_time)))
+
     return metrics
 
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-16x16-v0'
+    env_name = 'MiniGrid-DoorKey-8x8-v0'
     #env_name = 'MiniGrid-Empty-8x8-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
@@ -109,7 +112,7 @@ if __name__ == "__main__":
 
     agent_seeds = range(1)
     #env_seeds = range(1)
-    env_seeds = [109]#, 109, 3, 35, 121]
+    env_seeds = [42]#, 109, 3, 35, 121]
     agent_configs = [
         #"AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",
@@ -145,7 +148,7 @@ if __name__ == "__main__":
             for agent_seed in agent_seeds:
                 loop.set_description(f"env: {env_seed} agent_seed: {agent_seed} agent_config: {agent_config}")
                 experiment_metrics[f"{agent_config}_{env_seed}_{agent_seed}"] = \
-                    run_experiment(agent_config, env_name, env_seed=env_seed, agent_seed=agent_seed, verbose=True)
+                    run_experiment(agent_config, env_name, env_seed=env_seed, agent_seed=agent_seed, verbose=False)
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
                 Logger.save_experiment_metrics(agent_config, metrics_data_frame)
 

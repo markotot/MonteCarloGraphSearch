@@ -2,9 +2,8 @@ import os
 
 from rl_agents.trainer import logger
 from EdouardMCGS.evaluation import Evaluation
-from rl_agents.agents.common.factory import load_agent, load_environment
-from rl_agents.agents.tree_search.graph_based import GraphNode
-
+from rl_agents.agents.common.factory import load_agent
+from Environments.metrics import Metrics
 
 def run_experiment(env, agent_config, options):
     #  to make it work with our MiniGridEnv
@@ -36,8 +35,5 @@ def run_experiment(env, agent_config, options):
     )
 
     images = evaluation.train()
-    metrics = dict(total_nodes=len(agent.planner.nodes),
-                   forward_model_calls=GraphNode.forward_model_calls,
-                   )
-
-    return os.path.relpath(evaluation.monitor.directory), images, agent, env, metrics
+    Metrics.save_metrics(agent)
+    return os.path.relpath(evaluation.monitor.directory), images, agent, env

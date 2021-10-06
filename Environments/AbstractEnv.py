@@ -3,35 +3,38 @@ import random
 
 
 class AbstractEnv:
+
+    forward_model_calls = 0
+
     def __init__(self, env: Env):
+
         self.env = env
         self.action_space = self.env.action_space
         self.action = None
-
         self.state = None
         self.reward = None
         self.done = None
         self.info = None
         self.reset()
 
+
     def step(self, action):
 
+        AbstractEnv.forward_model_calls += 1
         self.action = action
         self.state, self.reward, self.done, self.info = self.env.step(self.action)
         return self.state, self.reward, self.done, self.info
 
     def random_step(self, disabled_actions=[]):
         possible_actions = [x for x in range(self.action_space.n) if x not in disabled_actions]
-        
-        self.action = random.choice(possible_actions)
-        self.state, self.reward, self.done, self.info = self.env.step(self.action)
-        return self.state, self.reward, self.done, self.info
+        return self.step(random.choice(possible_actions))
 
     def reset(self):
         self.state = self.env.reset()
         self.done = None
         self.reward = None
         self.info = None
+        AbstractEnv.forward_model_calls = 0
 
     def render(self):
         self.env.render()

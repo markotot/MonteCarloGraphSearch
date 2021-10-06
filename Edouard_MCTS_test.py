@@ -64,12 +64,12 @@ def evaluate(env, agent_config, options):
 
 
 
-env = gym.make('MiniGrid-DoorKey-5x5-v0')
+env = gym.make('MiniGrid-DoorKey-8x8-v0')
 
 agent_config = {
     "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
     "gamma": 0.99,
-    "budget" : 500
+    "budget" : 8000
 }
 options = {
     "--seed": 42,
