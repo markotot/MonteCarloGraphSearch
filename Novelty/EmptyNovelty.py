@@ -34,7 +34,7 @@ class EmptyNovelty(AbstractNovelty):
     def calculate_novelty_threshold(self):
         return self.total_data_points * self.novelty_percentage
 
-    def update_posterior(self, observation):
+    def update_posterior(self, observation, step):
 
         self.x_pos[observation[0]] += 1
         self.y_pos[observation[1]] += 1
@@ -42,14 +42,15 @@ class EmptyNovelty(AbstractNovelty):
 
         self.total_data_points += 1
 
-    def goal_found(self):
-        if self.subgoals['goal_found'] == (-1, -1):
-            self.subgoals['goal_found'] = (self.total_data_points, self.agent.forward_model_calls)
+    def goal_found(self, step):
+        if self.subgoals['goal_found'] == (-1, -1, -1):
+            self.subgoals['goal_found'] = (self.total_data_points, step, self.agent.forward_model_calls)
             Logger.log_data(f"Goal found (Total nodes: {self.total_data_points})")
 
     def get_metrics(self):
         return dict(
             goal_found_nodes=self.subgoals['goal_found'][0],
-            goal_found_FMC=self.subgoals['goal_found'][1],
+            goal_found_steps=self.subgoals['goal_found'][1],
+            goal_found_FMC=self.subgoals['goal_found'][2],
         )
 

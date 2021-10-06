@@ -18,10 +18,11 @@ class DoorKeyNovelty(AbstractNovelty):
         self.novelty_function_name = config['novelty_function_name']
         self.novelty_percentage = config['novelty_percentage']
 
+        # (Nodes, Steps, FMC)
         self.subgoals = {
-            'key_subgoal': (-1, -1),
-            'door_subgoal': (-1, -1),
-            'goal_found': (-1, -1),
+            'key_subgoal': (-1, -1, -1),
+            'door_subgoal': (-1, -1, -1),
+            'goal_found': (-1, -1, -1),
         }
 
     def simple_novelty_function(self, *args, **kargs):
@@ -42,7 +43,7 @@ class DoorKeyNovelty(AbstractNovelty):
     def calculate_novelty_threshold(self):
         return self.total_data_points * self.novelty_percentage
 
-    def update_posterior(self, observation):
+    def update_posterior(self, observation, step):
 
         self.x_pos[observation[0]] += 1
         self.y_pos[observation[1]] += 1
@@ -53,31 +54,34 @@ class DoorKeyNovelty(AbstractNovelty):
         self.total_data_points += 1
 
         if observation[3] == 'key':
-            self.key_picked_up()
+            self.key_picked_up(step)
         if observation[4] is True:
-            self.door_opened()
+            self.door_opened(step)
 
-    def key_picked_up(self):
-        if self.subgoals['key_subgoal'] == (-1, -1):
-            self.subgoals['key_subgoal'] = (self.total_data_points, self.agent.forward_model_calls)
+    def key_picked_up(self, step):
+        if self.subgoals['key_subgoal'] == (-1, -1, -1):
+            self.subgoals['key_subgoal'] = (self.total_data_points, step, self.agent.forward_model_calls)
             Logger.log_data(f"Key subgoal found (Total nodes: {self.total_data_points})")
 
-    def door_opened(self):
-        if self.subgoals['door_subgoal'] == (-1, -1):
-            self.subgoals['door_subgoal'] = (self.total_data_points, self.agent.forward_model_calls)
+    def door_opened(self, step):
+        if self.subgoals['door_subgoal'] == (-1, -1, -1):
+            self.subgoals['door_subgoal'] = (self.total_data_points, step, self.agent.forward_model_calls)
             Logger.log_data(f"Door subgoal found (Total nodes: {self.total_data_points})")
 
-    def goal_found(self):
-        if self.subgoals['goal_found'] == (-1, -1):
-            self.subgoals['goal_found'] = (self.total_data_points, self.agent.forward_model_calls)
+    def goal_found(self, step):
+        if self.subgoals['goal_found'] == (-1, -1, -1):
+            self.subgoals['goal_found'] = (self.total_data_points, step, self.agent.forward_model_calls)
             Logger.log_data(f"Goal found (Total nodes: {self.total_data_points})")
 
     def get_metrics(self):
         return dict(
             key_found_nodes=self.subgoals['key_subgoal'][0],
-            key_found_FMC=self.subgoals['key_subgoal'][1],
+            key_found_steps=self.subgoals['key_subgoal'][1],
+            key_found_FMC=self.subgoals['key_subgoal'][2],
             door_found_nodes=self.subgoals['door_subgoal'][0],
-            door_found_FMC=self.subgoals['door_subgoal'][1],
+            door_found_steps=self.subgoals['door_subgoal'][1],
+            door_found_FMC=self.subgoals['door_subgoal'][2],
             goal_found_nodes=self.subgoals['goal_found'][0],
-            goal_found_FMC=self.subgoals['goal_found'][1],
+            goal_found_steps=self.subgoals['goal_found'][1],
+            goal_found_FMC=self.subgoals['goal_found'][2],
         )

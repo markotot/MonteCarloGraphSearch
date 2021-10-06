@@ -12,7 +12,7 @@ class AbstractNovelty:
     def calculate_novelty(self, observation):
         return getattr(self, self.novelty_function_name)(observation=observation)
 
-    def update_posterior(self, observation):
+    def update_posterior(self, observation, step):
         raise NotImplementedError
 
     def get_metrics(self):

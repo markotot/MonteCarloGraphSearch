@@ -109,6 +109,7 @@ class MCGSAgent(AbstractAgent):
 
         self.node_counter = 0
         self.edge_counter = 0
+        self.steps = 0
 
         self.episodes = config['episodes']
         self.num_rollouts = config['num_rollouts']
@@ -129,13 +130,14 @@ class MCGSAgent(AbstractAgent):
         self.add_node(self.root_node)
         self.forward_model_calls = 0
 
+
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
 
         self.start_node = self.root_node
 
     def plan(self, draw_graph=True) -> int:
-
+        self.steps += 1
         self.graph.set_root_node(self.root_node)
         self.graph.reroute_all()
 
@@ -349,7 +351,7 @@ class MCGSAgent(AbstractAgent):
 
         best_node = self.graph.get_best_node(only_reachable=True)
         if best_node.done is True:
-            self.novelty_stats.goal_found()
+            self.novelty_stats.goal_found(self.steps)
 
         while best_node.parent != self.root_node:
             best_node = best_node.parent
@@ -391,7 +393,7 @@ class MCGSAgent(AbstractAgent):
                                       f" Parent: {str(self.agent_position(node.parent)):<12}"
                                       f" Action: {self.env.agent_action_mapper(node.action):<16}")
 
-            self.novelty_stats.update_posterior(node.id)
+            self.novelty_stats.update_posterior(node.id, step=self.steps)
 
     def add_edge(self, edge, who="Expansion"):
         if not self.graph.has_edge(edge):

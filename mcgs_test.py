@@ -101,7 +101,7 @@ def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=Tr
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-8x8-v0'
+    env_name = 'MiniGrid-DoorKey-16x16-v0'
     #env_name = 'MiniGrid-Empty-8x8-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
@@ -111,8 +111,9 @@ if __name__ == "__main__":
     # 121 very hard
 
     agent_seeds = range(1)
+    agent_seeds = range(1)
     #env_seeds = range(1)
-    env_seeds = [42]#, 109, 3, 35, 121]
+    env_seeds = [7]#, 109, 3, 35, 121]
     agent_configs = [
         #"AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",
@@ -130,10 +131,13 @@ if __name__ == "__main__":
         'number_of_steps',
         'forward_model_calls',
         'key_found_nodes',
+        'key_found_steps',
         'key_found_FMC',
         'door_found_nodes',
+        'door_found_steps',
         'door_found_FMC',
         'goal_found_nodes',
+        'goal_found_steps',
         'goal_found_FMC',
         'total_nodes',
         'frontier_nodes',
