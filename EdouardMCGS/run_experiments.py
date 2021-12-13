@@ -19,21 +19,20 @@ def run_experiment(env, agent_config, options):
 
     logger.configure()
     agent = load_agent(agent_config, env)
-    run_directory = None
     options["--seed"] = int(options["--seed"]) if options["--seed"] is not None else None
 
     evaluation = Evaluation(
         env,
         agent,
-        run_directory=run_directory,
+        run_directory=None,
         num_episodes=int(options["--episodes"]),
         sim_seed=options["--seed"],
-        recover=False,  # options['--recover'] or options['--recover-from'],
+        recover=False,
         display_env=not options["--no-display"],
         display_agent=not options["--no-display"],
         display_rewards=not options["--no-display"],
     )
 
     images = evaluation.train()
-    Metrics.save_metrics(agent)
+    Metrics.save_metrics(agent, options["--seed"])
     return os.path.relpath(evaluation.monitor.directory), images, agent, env

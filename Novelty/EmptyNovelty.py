@@ -17,7 +17,7 @@ class EmptyNovelty(AbstractNovelty):
         self.novelty_percentage = config['novelty_percentage']
 
         self.subgoals = {
-            'goal_found': (-1, -1),
+            'goal_found': (-1, -1, -1),
         }
 
     def simple_novelty_function(self, *args, **kargs):

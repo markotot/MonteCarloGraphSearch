@@ -141,6 +141,7 @@ class Evaluation(object):
             images = []
             self.seed(self.episode)
             self.reset()
+            self.observation = self.env.get_observation()
             rewards = []
 
             for i in iterations:
@@ -152,7 +153,8 @@ class Evaluation(object):
 
                 if terminal:
                     Metrics.solved = True
-                    Metrics.solved_steps = i
+                    Metrics.solved_steps = (i + 1)
+                    Metrics.solved_nodes = len(self.agent.planner.nodes)
                     Metrics.solved_fmc = AbstractEnv.forward_model_calls
                     images.append(self.monitor.render(mode='rgb_array', highlight=False))
                     break
@@ -168,6 +170,7 @@ class Evaluation(object):
             Plan a sequence of actions according to the agent policy, and step the environment accordingly.
         """
         # Query agent for actions sequence
+
         actions = self.agent.plan(self.observation)
         if not actions:
             raise Exception("The agent did not plan any action")
@@ -180,11 +183,11 @@ class Evaluation(object):
 
         # Step the environment
         previous_observation, action = self.observation, actions[0]
-        self.observation, reward, terminal, info = self.monitor.step(action)
+
+        _, reward, terminal, info = self.env.step(action)
+        self.observation = self.env.get_observation()
 
 
-
-        # Record the experience.
         try:
             self.agent.record(previous_observation, action, reward, self.observation, terminal, info)
         except NotImplementedError:

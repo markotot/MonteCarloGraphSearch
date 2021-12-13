@@ -17,9 +17,7 @@ class AbstractEnv:
         self.info = None
         self.reset()
 
-
     def step(self, action):
-
         AbstractEnv.forward_model_calls += 1
         self.action = action
         self.state, self.reward, self.done, self.info = self.env.step(self.action)
@@ -30,10 +28,12 @@ class AbstractEnv:
         return self.step(random.choice(possible_actions))
 
     def reset(self):
-        self.state = self.env.reset()
+        self.env.reset()
+        self.state = None
         self.done = None
         self.reward = None
         self.info = None
+        print("FMC reset")
         AbstractEnv.forward_model_calls = 0
 
     def render(self):
