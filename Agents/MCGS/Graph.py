@@ -273,7 +273,6 @@ class Graph:
                     i += 1
                     visited.append(child)
                     queue.append(child)
-        #print(i)
 
     def reroute_all_optimized(self):
         i = 0

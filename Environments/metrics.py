@@ -5,6 +5,7 @@ from datetime import datetime
 
 
 class Metrics:
+
     key_found = False
     key_found_fmc = -1
     key_found_nodes = -1

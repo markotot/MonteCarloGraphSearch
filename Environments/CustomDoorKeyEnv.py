@@ -55,9 +55,13 @@ class CustomDoorKeyEnv(MiniGridEnv):
 
 class CustomDoorKey(MyMinigridEnv):
 
-    def __init__(self, ascii=None, size=16, seed=42):
+    def __init__(self, ascii=None, action_failure_prob=0, size=16, seed=42):
         env = CustomDoorKeyEnv(ascii, size=size, seed=seed)
-        super().__init__(name=f"MiniGrid-DoorKey-{size}x{size}-v0", seed=seed)
+
+        super().__init__(name=f"MiniGrid-DoorKey-{size}x{size}-v0",
+                         action_failure_prob=action_failure_prob,
+                         seed=seed)
+
         self.name = f"CustomDoorKey-{size}x{size}-v0"
         self.env = env
         self.seed = seed

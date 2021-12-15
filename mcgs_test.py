@@ -43,23 +43,29 @@ from Utils.Logger import Logger, plot_images
 # TODO next:
 #   make novelties be continuous rather than discrete yes/no
 #   parallelize BFS
-#   check only for children
+#   reroute by checking only for children
+
+# TODO: stochastic
+#   Log the currently known path
+#   Log the selected action -> enacted action
+#   Do continuous selection (UCB) instead of frontier
+
 
 def load_agent_configuration(path):
     with open(path, 'r') as stream:
         return yaml.safe_load(stream)
 
-def create_environment(env_name, env_seed):
+def create_environment(env_name, action_failure_prob, env_seed):
     if "Custom" in env_name:
         return CustomDoorKey(size=16)
     else:
-        return MyMinigridEnv(env_name, seed=env_seed)
+        return MyMinigridEnv(env_name, action_failure_prob=action_failure_prob, seed=env_seed)
 
 
-def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=True):
+def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, verbose=True):
 
     agent_config = load_agent_configuration(agent_config_path)
-    env = create_environment(env_name, env_seed)
+    env = create_environment(env_name=env_name, action_failure_prob=action_failure_prob, env_seed=env_seed)
 
     Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
     agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
@@ -80,7 +86,6 @@ def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=Tr
         state, reward, done, info = agent.act(action)
         images.append(env.render())
         total_reward += reward
-
         if done:
             break
     end_time = time.time()
@@ -101,8 +106,8 @@ def run_experiment(agent_config_path, env_name, env_seed, agent_seed, verbose=Tr
 
 if __name__ == "__main__":
 
-    #env_name = 'MiniGrid-DoorKey-16x16-v0'
-    env_name = 'MiniGrid-Empty-8x8-v0'
+    env_name = 'MiniGrid-DoorKey-8x8-v0'
+    #env_name = 'MiniGrid-Empty-8x8-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
     # 109 medium
@@ -110,7 +115,9 @@ if __name__ == "__main__":
     # 35 hard
     # 121 very hard
 
-    agent_seeds = range(0, 25)
+    action_failure_prob = 0.2
+
+    agent_seeds = range(2, 25)
     env_seeds = range(0, 1)
     #env_seeds = [7] #, 109, 3, 35, 121]
     agent_configs = [
@@ -151,7 +158,13 @@ if __name__ == "__main__":
             for agent_seed in agent_seeds:
                 loop.set_description(f"env: {env_seed} agent_seed: {agent_seed} agent_config: {agent_config}")
                 experiment_metrics[f"{agent_config}_{env_seed}_{agent_seed}"] = \
-                    run_experiment(agent_config, env_name, env_seed=env_seed, agent_seed=agent_seed, verbose=False)
+                    run_experiment(agent_config_path=agent_config,
+                                   env_name=env_name,
+                                   env_seed=env_seed,
+                                   action_failure_prob=action_failure_prob,
+                                   agent_seed=agent_seed,
+                                   verbose=True)
+
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
                 Logger.save_experiment_metrics(agent_config, metrics_data_frame)
 

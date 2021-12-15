@@ -13,13 +13,11 @@ class EnvType(Enum):
 
 
 class MyMinigridEnv(AbstractEnv):
-    def __init__(self, name, seed=42):
+    def __init__(self, name, action_failure_prob=0, seed=42):
         env = gym.make(name)
         env.seed(seed)
-        super().__init__(env)
+        super().__init__(env=env, action_failure_prob=action_failure_prob, seed=seed)
 
-        self.env = env
-        self.seed = seed
         self.name = self.env.unwrapped.spec.id
 
         if "DoorKey" in name:
