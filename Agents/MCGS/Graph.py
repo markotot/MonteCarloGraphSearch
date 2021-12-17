@@ -129,8 +129,13 @@ class Graph:
         else:
             selectable_nodes = nodes
 
-        best_node = selectable_nodes[0]
-        best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
+        if len(selectable_nodes) > 0:
+            best_node = selectable_nodes[0]
+            best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
+        else:
+            best_node = None
+            best_node_value = None
+
         for n in selectable_nodes:
             selected_node_value = n.value() + self.get_edge_info(n.parent, n).reward
             if best_node_value < selected_node_value:
@@ -138,6 +143,31 @@ class Graph:
                 best_node_value = selected_node_value
 
         return best_node
+
+    def get_closest_done_node(self, only_reachable=False):
+
+        selectable_nodes = [x for x in self.get_all_nodes_info() if x.done and x.unreachable is False]
+        if only_reachable:
+            selectable_nodes = [x for x in selectable_nodes if x.unreachable is False]
+
+        if len(selectable_nodes) > 0:
+            best_node = selectable_nodes[0]
+            best_node_length = self.get_path_length(self.root_node, best_node)
+        else:
+            best_node = None
+            best_node_length = None
+
+        for n in selectable_nodes:
+            selected_node_length = self.get_path_length(self.root_node, n)
+            if selected_node_length < best_node_length:
+                best_node = n
+                best_node_length = selected_node_length
+
+        return best_node
+
+
+
+
 
     def has_node(self, ID):
         return self.graph.has_node(ID)

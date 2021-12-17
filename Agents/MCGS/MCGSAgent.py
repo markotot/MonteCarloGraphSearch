@@ -137,9 +137,10 @@ class MCGSAgent(AbstractAgent):
         self.add_node(self.root_node)
         self.forward_model_calls = 0
 
-
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
+
+        self.candidates = []
 
         self.start_node = self.root_node
 
@@ -179,10 +180,11 @@ class MCGSAgent(AbstractAgent):
             self.graph.draw_graph()
 
         #action = self.get_optimal_action(self.root_node)
-        best_node, action = self.select_best_step(self.root_node)
+        best_node, action = self.select_best_step(self.root_node, closest=True)
         
-        Logger.log_data(f"Action: {self.env.agent_action_mapper(action):<16}"
-                        f"Current position: {str(self.agent_position(self.root_node)):<12}")
+        Logger.log_data(f"Current position: {str(self.agent_position(self.root_node)):<12}"
+                        f"Action: {self.env.agent_action_mapper(action):<16}"
+                        f"Target: {str(self.agent_position(best_node)):<12}")
 
         return action
 
@@ -198,8 +200,11 @@ class MCGSAgent(AbstractAgent):
 
         obs_trajectory = [env.get_observation()]
 
+        nodes_on_path, actions = self.graph.get_path(self.root_node, node)
+
         # TODO: For stochastic, continuously go to the node
-        for action in node.trajectory_from_root():
+        for idx, action in enumerate(node.trajectory_from_root()):
+
             previous_observation = env.get_observation()
             parent_node = self.graph.get_node_info(previous_observation)
             state, reward, done, _ = env.step(action)
@@ -281,7 +286,7 @@ class MCGSAgent(AbstractAgent):
         cum_reward = 0
         path = []
         rollout_env = deepcopy(env)
-        env.step(action_to_node, action_failure_probabilities[0], failed_action_list[0])
+        rollout_env.step(action_to_node, action_failure_probabilities[0], failed_action_list[0])
 
         previous_observation = rollout_env.get_observation()
         for idx, action in enumerate(action_list):
@@ -306,7 +311,7 @@ class MCGSAgent(AbstractAgent):
             node = node.parent
             y *= y
             if i > 1000:
-                print("Wuf")
+                print("Backprop loop")
 
     def add_novelties_to_graph(self, paths):
 
@@ -352,8 +357,8 @@ class MCGSAgent(AbstractAgent):
                 new_node = child
             else:
                 child = self.graph.get_node_info(current_observation)
-                #if child.is_leaf: #enable for FMC optimisation, comment for full exploration
-                new_node = child
+                if child.is_leaf: #enable for FMC optimisation, comment for full exploration
+                    new_node = child
 
             edge = self.add_edge(parent_node, child, action, reward, done)
 
@@ -401,9 +406,17 @@ class MCGSAgent(AbstractAgent):
                 self.graph.reroute_path(self.root_node, old_root_node)
                 old_root_node.action = self.graph.get_edge_info(old_root_node.parent, old_root_node).action
 
-    def select_best_step(self, node):
+    def select_best_step(self, node, closest=False):
 
-        best_node = self.graph.get_best_node(only_reachable=True)
+        best_node = None
+        if closest:
+            best_node = self.graph.get_closest_done_node(only_reachable=True)
+
+        if best_node is None:
+            best_node = self.graph.get_best_node(only_reachable=True)
+
+        print(f"Current: {self.agent_position(self.root_node)}")
+        print(f"Target: {best_node}, Path: {self.graph.get_path_length(self.root_node, best_node)}")
         if best_node.done is True:
             self.novelty_stats.goal_found(self.steps)
 
@@ -411,6 +424,8 @@ class MCGSAgent(AbstractAgent):
             best_node = best_node.parent
 
         edge = self.graph.get_edge_info(node, best_node)  # pick the edge between children
+        print(f"Action: {self.env.agent_action_mapper(edge.action)}")
+
         return best_node, edge.action
 
     def check_paths(self):

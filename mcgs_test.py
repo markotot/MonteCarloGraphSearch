@@ -49,6 +49,7 @@ from Utils.Logger import Logger, plot_images
 #   Log the currently known path
 #   Log the selected action -> enacted action
 #   Do continuous selection (UCB) instead of frontier
+#   The Target node (best node changes due to rollouts)
 
 
 def load_agent_configuration(path):
@@ -106,8 +107,8 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-8x8-v0'
-    #env_name = 'MiniGrid-Empty-8x8-v0'
+    env_name = 'MiniGrid-DoorKey-16x16-v0'
+    #env_name = 'MiniGrid-Empty-16x16-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
     # 109 medium
@@ -115,15 +116,15 @@ if __name__ == "__main__":
     # 35 hard
     # 121 very hard
 
-    action_failure_prob = 0.2
+    action_failure_prob = 0.0
 
-    agent_seeds = range(2, 25)
-    env_seeds = range(0, 1)
-    #env_seeds = [7] #, 109, 3, 35, 121]
+    agent_seeds = range(1, 2)
+    #env_seeds = range(7, 8)
+    env_seeds = [35] #, 109, 3, 35, 121]
     agent_configs = [
         #"AgentConfig/mcgs_0.yaml",
         "AgentConfig/mcgs_1.yaml",
-        "AgentConfig/mcgs_2.yaml",
+        #"AgentConfig/mcgs_2.yaml",
         #"AgentConfig/mcgs_3.yaml",
         #"AgentConfig/mcgs_4.yaml",
         #"AgentConfig/mcgs_5.yaml",

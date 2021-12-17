@@ -3,7 +3,7 @@ import numpy as np
 
 class AbstractEnv:
 
-    forward_model_calls = 0
+    #forward_model_calls = 0
 
     def __init__(self, env: Env, action_failure_prob=0, seed=42):
 
@@ -11,6 +11,7 @@ class AbstractEnv:
         self.is_stochastic = self.action_failure_prob > 0
         self.seed = seed
         self.env = env
+
         self.random = np.random.RandomState(self.seed)
 
         self.action_space = self.env.action_space
@@ -22,7 +23,7 @@ class AbstractEnv:
         self.reset()
 
     def step(self, action, action_failure_prob=None, failed_action=None):
-        AbstractEnv.forward_model_calls += 1
+        #AbstractEnv.forward_model_calls += 1
         self.action = action    # Save the original action
 
         if self.is_stochastic:  # If the env is stochastic check if action should fail
@@ -50,7 +51,7 @@ class AbstractEnv:
         self.reward = None
         self.info = None
         print("FMC reset")
-        AbstractEnv.forward_model_calls = 0
+        #AbstractEnv.forward_model_calls = 0
 
     def render(self):
         self.env.render()
