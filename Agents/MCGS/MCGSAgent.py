@@ -6,8 +6,6 @@ from Novelty.DoorKeyNovelty import DoorKeyNovelty
 from Novelty.EmptyNovelty import EmptyNovelty
 from Utils.Logger import Logger
 
-
-
 import numpy as np
 import concurrent.futures
 import time
@@ -49,7 +47,7 @@ class Node:
         else:
             return self.total_value / self.visits
 
-    def trajectory_from_root(self, debug=False):
+    def trajectory_from_root(self):
 
         action_trajectory = []
         current_node = self
@@ -308,7 +306,7 @@ class MCGSAgent(AbstractAgent):
         times_randomness = []
         times_threads = []
 
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
             futures = []
             paths = [None] * self.num_rollouts
             for i in range(self.num_rollouts):
