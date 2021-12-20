@@ -10,6 +10,7 @@ from Utils.Logger import Logger
 
 import numpy as np
 import concurrent.futures
+import time
 
 from copy import deepcopy
 from tqdm import trange
@@ -21,7 +22,6 @@ class Node:
 
         self.id = ID
         self.parent = None
-        Logger.log_reroute_data("Ctor:")
         self.set_parent(parent)
 
         self.done = done
@@ -64,20 +64,16 @@ class Node:
         parent_order = list(reversed(path))
         actions_order = list(reversed(actions))
         node = self
-        Logger.log_reroute_data(f"Reroute: {self.id[0:5]}")
+
         for i in range(len(parent_order) - 1):
 
             if node.parent != parent_order[i + 1]:
                 node.set_parent(parent_order[i + 1])
             node.action = actions_order[i]
             node = parent_order[i + 1]
-        Logger.log_reroute_data(f"Reroute done: {self.id[0:5]}")
 
     def set_parent(self, parent):
         self.parent = parent
-        if parent is not None:
-            Logger.log_reroute_data(f"Node:{self.id[0:5]} Parent:{self.parent.id[0:5]}")
-
 
     def __hash__(self):
         return hash(self.id)
@@ -140,15 +136,32 @@ class MCGSAgent(AbstractAgent):
         Logger.log_data(self.info(), time=False)
         Logger.log_data(f"Start: {str(self.agent_position(self.root_node))}")
 
-        self.candidates = []
-
         self.start_node = self.root_node
 
     def plan(self, draw_graph=True) -> int:
         self.steps += 1
 
+
+        # benchmark
+        total_steps = 0
+        times_selection = []
+        times_expansion = []
+        times_simulation = []
+        times_backpropagation = []
+        times_reroute = []
+
+        times_thread = []
+        times_randomness = []
+        times_rollouts = []
+        times_steps = []
+        times_deepcopy = []
+
+
+        start = time.perf_counter()    # benchmark
         self.set_root_node()
         self.graph.reroute_all()
+        end = time.perf_counter()  # benchmark
+        times_reroute.append(end - start)  # benchmark
 
         if self.verbose:
             iterations = trange(self.episodes, leave=True)
@@ -158,34 +171,65 @@ class MCGSAgent(AbstractAgent):
             iterations = range(self.episodes)
 
         for _ in iterations:
+
+            start = time.perf_counter()  # benchmark
             selection_env = deepcopy(self.env)
             node = self.selection(selection_env)
+            end = time.perf_counter()  # benchmark
+            times_selection.append(end - start)  # benchmark
 
             if node is None:
-                children, actions_to_children = [self.root_node], [6]
+                children, actions_to_children = [self.root_node], [6] # 6 is Done Action (Do nothing)
             else:
+                start = time.perf_counter()  # benchmark
                 children, actions_to_children = self.expansion(node, selection_env)
+                end = time.perf_counter()  # benchmark
+                times_expansion.append(end - start)  # benchmark
 
             for idx in range(len(children)):
-                child_average_reward, novelties = self.simulation(actions_to_children[idx], selection_env)
+
+                start = time.perf_counter()    # benchmark
+                child_average_reward, novelties, simulation_steps, simulation_benchmarks = self.simulation(actions_to_children[idx], selection_env)
+
+                times_deepcopy.append(simulation_benchmarks[0])
+                times_rollouts.append(simulation_benchmarks[1])
+                times_steps.append(simulation_benchmarks[2])
+                times_randomness.append(simulation_benchmarks[3])
+                times_thread.append(simulation_benchmarks[4])
+
+                total_steps += simulation_steps
+                end = time.perf_counter()  # benchmark
+                times_simulation.append(end - start)  # benchmark
+
                 if self.add_nodes_during_rollout:
                     rollout_nodes, rewards = self.add_novelties_to_graph(novelties)
                 if self.use_back_propagation:
+                    start = time.perf_counter()    # benchmark
                     if self.add_nodes_during_rollout:
                         for i, node in enumerate(rollout_nodes):
                             self.back_propagation(node, rewards[i])
                     self.back_propagation(children[idx], child_average_reward)
+                    end = time.perf_counter()  # benchmark
+                    times_backpropagation.append(end - start)  # benchmark
 
         if draw_graph:
             self.graph.draw_graph()
 
-        #action = self.get_optimal_action(self.root_node)
         best_node, action = self.select_best_step(self.root_node, closest=True)
         
-        Logger.log_data(f"Current position: {str(self.agent_position(self.root_node)):<12}"
-                        f"Action: {self.env.agent_action_mapper(action):<16}"
-                        f"Target: {str(self.agent_position(best_node)):<12}")
+        Logger.log_data(f"Current position: {str(self.agent_position(self.root_node)):<40}"
+                        f"Action: {self.env.agent_action_mapper(action):<12}")
 
+        Logger.log_reroute_data(f"Selection: {round(np.mean(times_selection), 4)},"
+                                f" Expansion: {round(np.mean(times_expansion), 4)},"
+                                f" Simulation ({total_steps}): {round(np.mean(times_simulation), 4)},"
+                                f" Backprop: {round(np.mean(times_backpropagation), 4)}"
+                                f" Reroute: {round(np.mean(times_reroute), 4)}")
+        Logger.log_reroute_data(f"Threads: {round(np.mean(times_thread),4)}, "
+                                f"Randomness: {round(np.mean(times_randomness), 4)}, "
+                                f"Rollout: {round(np.mean(times_rollouts), 4)}, "
+                                f"Step: {round(np.mean(times_steps), 4)}, "
+                                f"Deepcopy:{round(np.mean(times_deepcopy), 4)}")
         return action
 
     def selection(self, env):
@@ -257,6 +301,13 @@ class MCGSAgent(AbstractAgent):
     def simulation(self, action_to_node, env):
         rewards = []
         total_steps = 0
+        #  benchmarks
+        times_copy = []
+        times_rollouts = []
+        times_steps = []
+        times_randomness = []
+        times_threads = []
+
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             paths = [None] * self.num_rollouts
@@ -266,31 +317,51 @@ class MCGSAgent(AbstractAgent):
                     if i < self.env.action_space.n:
                         disabled_actions.append(i)
 
+                start = time.perf_counter()
                 possible_actions = [x for x in range(self.env.action_space.n) if x not in disabled_actions]
                 action_list = self.random.choice(possible_actions, self.rollout_depth)
                 action_failure_probabilities = self.random.random_sample(self.rollout_depth + 1) #  +1 is for the original step
                 failed_action_list = self.random.choice(possible_actions, self.rollout_depth + 1) # +1 is for the original step
+                times_randomness.append(time.perf_counter() - start)
+
                 futures.append(executor.submit(self.rollout, action_to_node, env, action_list, action_failure_probabilities, failed_action_list, i))
 
+            start = time.perf_counter()
             for f in concurrent.futures.as_completed(futures):
-                average_reward, path, i = f.result()
+                average_reward, path, i, benchmarks = f.result()
+                times_copy.append(benchmarks[0])
+                times_rollouts.append(benchmarks[1])
+                times_steps.append(benchmarks[2])
                 paths[i] = path
                 rewards.append(average_reward)
                 total_steps += len(path)
+            times_threads.append(time.perf_counter() - start)
 
         self.forward_model_calls += total_steps
-        return np.mean(rewards), paths
+        return np.mean(rewards), paths, total_steps, [np.mean(times_copy), np.mean(times_rollouts), np.mean(times_steps), np.mean(times_randomness), np.mean(times_threads)]
 
     def rollout(self, action_to_node, env, action_list=[], action_failure_probabilities=[], failed_action_list=[], i=0):
 
+        #  benchmark
+        times_copy = None
+        times_rollout = None
+        times_step = []
+
+
         cum_reward = 0
         path = []
+        start = time.perf_counter()
         rollout_env = deepcopy(env)
-        rollout_env.step(action_to_node, action_failure_probabilities[0], failed_action_list[0])
+        times_copy = time.perf_counter() - start
 
+        #rollout_env.step(action_to_node, action_failure_probabilities[0], failed_action_list[0])
+
+        roll_start = time.perf_counter()
         previous_observation = rollout_env.get_observation()
         for idx, action in enumerate(action_list):
+            start = time.perf_counter()
             state, r, done, _ = rollout_env.step(action, action_failure_probabilities[idx + 1], failed_action_list[idx + 1])
+            times_step.append(time.perf_counter() - start)
             observation = rollout_env.get_observation()
             cum_reward += r
 
@@ -298,8 +369,9 @@ class MCGSAgent(AbstractAgent):
             previous_observation = observation
             if done:
                 break
+        times_rollout = time.perf_counter() - roll_start
 
-        return cum_reward, path, i
+        return cum_reward, path, i, [times_copy, times_rollout, np.sum(times_step)]
 
     def back_propagation(self, node, reward):
         i = 0
@@ -310,8 +382,7 @@ class MCGSAgent(AbstractAgent):
             node.total_value += reward * y
             node = node.parent
             y *= y
-            if i > 1000:
-                print("Backprop loop")
+
 
     def add_novelties_to_graph(self, paths):
 
@@ -357,8 +428,8 @@ class MCGSAgent(AbstractAgent):
                 new_node = child
             else:
                 child = self.graph.get_node_info(current_observation)
-                if child.is_leaf: #enable for FMC optimisation, comment for full exploration
-                    new_node = child
+                #if child.is_leaf: #enable for FMC optimisation, comment for full exploration
+                new_node = child
 
             edge = self.add_edge(parent_node, child, action, reward, done)
 
@@ -408,15 +479,13 @@ class MCGSAgent(AbstractAgent):
 
     def select_best_step(self, node, closest=False):
 
-        best_node = None
         if closest:
             best_node = self.graph.get_closest_done_node(only_reachable=True)
-
-        if best_node is None:
+            if best_node is None:
+                best_node = self.graph.get_best_node(only_reachable=True)
+        else:
             best_node = self.graph.get_best_node(only_reachable=True)
 
-        print(f"Current: {self.agent_position(self.root_node)}")
-        print(f"Target: {best_node}, Path: {self.graph.get_path_length(self.root_node, best_node)}")
         if best_node.done is True:
             self.novelty_stats.goal_found(self.steps)
 
@@ -424,7 +493,6 @@ class MCGSAgent(AbstractAgent):
             best_node = best_node.parent
 
         edge = self.graph.get_edge_info(node, best_node)  # pick the edge between children
-        print(f"Action: {self.env.agent_action_mapper(edge.action)}")
 
         return best_node, edge.action
 
@@ -478,7 +546,6 @@ class MCGSAgent(AbstractAgent):
                                   f" Action: {self.env.agent_action_mapper(edge.action):<16}")
 
         if child_node.unreachable is True and child_node != self.root_node:  # if child was unreachable make it reachable through this parent
-            Logger.log_reroute_data("Add New Obs:")
             child_node.set_parent(parent_node)
             child_node.action = action
             child_node.unreachable = False

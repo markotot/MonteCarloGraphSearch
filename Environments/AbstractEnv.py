@@ -33,11 +33,10 @@ class AbstractEnv:
 
             if action_failure_prob < self.action_failure_prob:  # If the action should fail, swap it here
                 #action = failed_action
-                action = 6
+                action = 6 # No action
 
         self.state, self.reward, self.done, self.info = self.env.step(action)   # Do the step
         return self.state, self.reward, self.done, self.info
-
 
     def random_step(self, disabled_actions=[]):
         possible_actions = [x for x in range(self.action_space.n) if x not in disabled_actions]
