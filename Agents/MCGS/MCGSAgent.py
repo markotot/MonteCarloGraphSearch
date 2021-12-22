@@ -13,6 +13,7 @@ import time
 from copy import deepcopy
 from tqdm import trange
 
+rollout_executor = concurrent.futures.ProcessPoolExecutor(max_workers=16)
 
 class Node:
 
@@ -128,6 +129,9 @@ class MCGSAgent(AbstractAgent):
         self.root_node.chosen = True
         self.node_counter += 1
 
+        #benchmark
+        self.num_sim = 0
+
         self.add_node(self.root_node)
         self.forward_model_calls = 0
 
@@ -153,6 +157,7 @@ class MCGSAgent(AbstractAgent):
         times_rollouts = []
         times_steps = []
         times_deepcopy = []
+        times_as_completed = []
 
 
         start = time.perf_counter()    # benchmark
@@ -187,13 +192,14 @@ class MCGSAgent(AbstractAgent):
             for idx in range(len(children)):
 
                 start = time.perf_counter()    # benchmark
-                child_average_reward, novelties, simulation_steps, simulation_benchmarks = self.simulation(actions_to_children[idx], selection_env)
-
+                child_average_reward, novelties, simulation_steps, simulation_benchmarks = self.sequential_simulation(actions_to_children[idx], selection_env)
+                self.num_sim += 1
                 times_deepcopy.append(simulation_benchmarks[0])
                 times_rollouts.append(simulation_benchmarks[1])
                 times_steps.append(simulation_benchmarks[2])
                 times_randomness.append(simulation_benchmarks[3])
                 times_thread.append(simulation_benchmarks[4])
+                times_as_completed.append(simulation_benchmarks[5])
 
                 total_steps += simulation_steps
                 end = time.perf_counter()  # benchmark
@@ -223,11 +229,11 @@ class MCGSAgent(AbstractAgent):
                                 f" Simulation ({total_steps}): {round(np.mean(times_simulation), 4)},"
                                 f" Backprop: {round(np.mean(times_backpropagation), 4)}"
                                 f" Reroute: {round(np.mean(times_reroute), 4)}")
-        Logger.log_reroute_data(f"Threads: {round(np.mean(times_thread),4)}, "
-                                f"Randomness: {round(np.mean(times_randomness), 4)}, "
+        Logger.log_reroute_data(f"Num_sim: {self.num_sim}, "
+                                f"Threads: {round(np.mean(times_thread),4)}, "
+                                f"As_comp: {round(np.mean(times_as_completed), 4)}, "
                                 f"Rollout: {round(np.mean(times_rollouts), 4)}, "
-                                f"Step: {round(np.mean(times_steps), 4)}, "
-                                f"Deepcopy:{round(np.mean(times_deepcopy), 4)}")
+                                f"Step: {round(np.mean(times_steps), 4)}, ")
         return action
 
     def selection(self, env):
@@ -289,6 +295,7 @@ class MCGSAgent(AbstractAgent):
             if node.unreachable and node != self.root_node:
                 print("No way expansion!")
                 assert False
+
             child, reward = self.add_new_observation(current_observation, node, action, reward, done)
             if child is not None:
                 new_nodes.append(child)
@@ -296,7 +303,7 @@ class MCGSAgent(AbstractAgent):
 
         return new_nodes, actions_to_new_nodes
 
-    def simulation(self, action_to_node, env):
+    def parallel_simulation(self, action_to_node, env):
         rewards = []
         total_steps = 0
         #  benchmarks
@@ -305,44 +312,86 @@ class MCGSAgent(AbstractAgent):
         times_steps = []
         times_randomness = []
         times_threads = []
+        times_as_completed_diff = []
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-            futures = []
-            paths = [None] * self.num_rollouts
-            for i in range(self.num_rollouts):
-                disabled_actions = []
-                if self.use_disabled_actions:
-                    if i < self.env.action_space.n:
-                        disabled_actions.append(i)
-
-                start = time.perf_counter()
-                possible_actions = [x for x in range(self.env.action_space.n) if x not in disabled_actions]
-                action_list = self.random.choice(possible_actions, self.rollout_depth)
-                action_failure_probabilities = self.random.random_sample(self.rollout_depth + 1) #  +1 is for the original step
-                failed_action_list = self.random.choice(possible_actions, self.rollout_depth + 1) # +1 is for the original step
-                times_randomness.append(time.perf_counter() - start)
-
-                futures.append(executor.submit(self.rollout, action_to_node, env, action_list, action_failure_probabilities, failed_action_list, i))
+        futures = []
+        paths = [None] * self.num_rollouts
+        for i in range(self.num_rollouts):
+            disabled_actions = []
+            if self.use_disabled_actions:
+                if i < self.env.action_space.n:
+                    disabled_actions.append(i)
 
             start = time.perf_counter()
-            for f in concurrent.futures.as_completed(futures):
-                average_reward, path, i, benchmarks = f.result()
-                times_copy.append(benchmarks[0])
-                times_rollouts.append(benchmarks[1])
-                times_steps.append(benchmarks[2])
-                paths[i] = path
-                rewards.append(average_reward)
-                total_steps += len(path)
-            times_threads.append(time.perf_counter() - start)
+            possible_actions = [x for x in range(self.env.action_space.n) if x not in disabled_actions]
+            action_list = self.random.choice(possible_actions, self.rollout_depth)
+            action_failure_probabilities = self.random.random_sample(self.rollout_depth + 1) #  +1 is for the original step
+            failed_action_list = self.random.choice(possible_actions, self.rollout_depth + 1) # +1 is for the original step
+            times_randomness.append(time.perf_counter() - start)
 
-        self.forward_model_calls += total_steps
-        return np.mean(rewards), paths, total_steps, [np.mean(times_copy), np.mean(times_rollouts), np.mean(times_steps), np.mean(times_randomness), np.mean(times_threads)]
+            future = rollout_executor.submit(self.rollout, action_to_node, env, action_list, action_failure_probabilities, failed_action_list, i)
+            futures.append(future)
+
+        start = time.perf_counter()
+        completed_time = time.perf_counter()
+        for f in concurrent.futures.as_completed(futures):
+            times_as_completed_diff.append(time.perf_counter() - completed_time)
+            completed_time = time.perf_counter()
+            average_reward, path, i, benchmarks = f.result()
+            times_copy.append(benchmarks[0])
+            times_rollouts.append(benchmarks[1])
+            times_steps.append(benchmarks[2])
+            paths[i] = path
+            rewards.append(average_reward)
+            total_steps += len(path)
+
+        times_threads.append(time.perf_counter() - start)
+
+        #  self.forward_model_calls += total_steps
+        print(np.mean(times_as_completed_diff))
+        return np.mean(rewards), paths, total_steps, [np.mean(times_copy), np.mean(times_rollouts), np.mean(times_steps), np.mean(times_randomness), np.mean(times_threads), np.mean(times_as_completed_diff[1:])]
+
+    def sequential_simulation(self, action_to_node, env):
+        rewards = []
+        total_steps = 0
+        #  benchmarks
+        times_copy = []
+        times_rollouts = []
+        times_steps = []
+        times_randomness = []
+        times_threads = []
+        times_as_completed_diff = []
+
+        paths = [None] * self.num_rollouts
+
+        for i in range(self.num_rollouts):
+            start = time.perf_counter()
+            disabled_actions = []
+            if self.use_disabled_actions:
+                if i < self.env.action_space.n:
+                    disabled_actions.append(i)
+
+            possible_actions = [x for x in range(self.env.action_space.n) if x not in disabled_actions]
+            action_list = self.random.choice(possible_actions, self.rollout_depth)
+            action_failure_probabilities = self.random.random_sample(
+                self.rollout_depth + 1)  # +1 is for the original step
+            failed_action_list = self.random.choice(possible_actions,
+                                                    self.rollout_depth + 1)  # +1 is for the original step
+            times_randomness.append(time.perf_counter() - start)
+
+            average_reward, path, x, benchmarks = self.rollout(action_to_node, env, action_list, action_failure_probabilities, failed_action_list, i)
+            paths[x] = path
+            total_steps += len(path)
+            rewards.append(average_reward)
+
+            times_as_completed_diff.append(time.perf_counter() - start)
+
+        return np.mean(rewards), paths, total_steps, [np.mean(times_copy), np.mean(times_rollouts),
+                                                      np.mean(times_steps), np.mean(times_randomness),
+                                                      np.mean(times_threads), np.mean(times_as_completed_diff[1:])]
 
     def rollout(self, action_to_node, env, action_list=[], action_failure_probabilities=[], failed_action_list=[], i=0):
 
-        #  benchmark
-        times_copy = None
-        times_rollout = None
         times_step = []
 
 
@@ -433,6 +482,7 @@ class MCGSAgent(AbstractAgent):
 
             # TODO: Might need change for stochastic
             # revalue reward for optimal path
+            """
             if done is True:
                 path, actions = self.graph.get_path(self.root_node, child)
                 revalue_env = deepcopy(self.env)
@@ -442,6 +492,7 @@ class MCGSAgent(AbstractAgent):
                 reward = r
                 child.reward = reward
                 edge.reward = reward
+            """
 
         return new_node, reward
 
