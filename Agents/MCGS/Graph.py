@@ -90,12 +90,12 @@ class Graph:
         node_to.reroute(node_path, actions)
 
     def get_path(self, node_from, node_to):
-        nodes = nx.dijkstra_path(self.graph, node_from.id, node_to.id)
+        observations = nx.dijkstra_path(self.graph, node_from.id, node_to.id)
         actions = []
-        for i in range(len(nodes) - 1):
-            actions.append(self.get_edge_info(self.get_node_info(nodes[i]), self.get_node_info(nodes[i + 1])).action)
+        for i in range(len(observations) - 1):
+            actions.append(self.get_edge_info(self.get_node_info(observations[i]), self.get_node_info(observations[i + 1])).action)
 
-        return nodes, actions
+        return observations, actions
 
     def get_path_length(self, node_from, node_to):
         nodes = nx.dijkstra_path(self.graph, node_from.id, node_to.id)
@@ -165,10 +165,6 @@ class Graph:
 
         return best_node
 
-
-
-
-
     def has_node(self, ID):
         return self.graph.has_node(ID)
 
@@ -193,6 +189,13 @@ class Graph:
         for n in self.graph.successors(id):
             node_list.append(self.graph.nodes[n]["info"])
         return node_list
+
+    def get_child_with_action(self, id, action):
+        for edge in self.graph.out_edges(id, data=True):
+            if edge[2]["info"].action == action:
+                return edge[1]  # return child node
+        return None
+
 
     def get_edge_info(self, parent, child):
         return self.graph.get_edge_data(parent.id, child.id)["info"]

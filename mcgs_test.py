@@ -10,7 +10,6 @@ from Agents.MCGS.MCGSAgent import MCGSAgent
 
 from Environments.MyMinigridEnv import MyMinigridEnv
 from Environments.CustomDoorKeyEnv import CustomDoorKey
-from Environments.AbstractEnv import AbstractEnv
 from Utils.Logger import Logger, plot_images
 
 #TODO: Differences to Go-Explore
@@ -101,7 +100,8 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     metrics.update(solved=total_reward > 0)
     metrics.update(number_of_steps=i)
     metrics.update(time_elapsed=datetime.timedelta(seconds=int(end_time - start_time)))
-
+    metrics.update(env_name=env_name)
+    metrics.update(action_failure_prob=action_failure_prob)
     return metrics
 
 
@@ -116,11 +116,13 @@ if __name__ == "__main__":
     # 35 hard
     # 121 very hard
 
-    action_failure_prob = 0.0
+    # TODO: TEST EXCEPTION WITH A_S:0 ENV_S:19
+    action_failure_prob = 0.2
 
-    agent_seeds = range(1, 2)
-    #env_seeds = range(7, 8)
-    env_seeds = [35] #, 109, 3, 35, 121]
+    #agent_seeds = range(0, 10)
+    agent_seeds = [0]
+    env_seeds = [19]
+    #env_seeds = [35] #, 109, 3, 35, 121]
     agent_configs = [
         #"AgentConfig/mcgs_0.yaml",
         "AgentConfig/mcgs_1.yaml",
@@ -134,6 +136,8 @@ if __name__ == "__main__":
     ]
 
     order_metrics = [
+        'env_name',
+        'action_failure_prob',
         'solved',
         'number_of_steps',
         'forward_model_calls',
