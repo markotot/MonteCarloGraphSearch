@@ -73,6 +73,9 @@ class MyMinigridEnv(AbstractEnv):
             assert False
         return observation
 
+    def observation(self):
+        return self.get_observation()
+
     def get_observation_door_key(self):
 
         agent_pos_x = self.env.agent_pos[0]

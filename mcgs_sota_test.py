@@ -2,10 +2,10 @@ from EdouardMCGS.run_experiments import run_experiment
 from Environments.MyMinigridEnv import MyMinigridEnv
 from Utils.Logger import plot_images
 
-env = MyMinigridEnv('MiniGrid-Empty-16x16-v0')
+env = MyMinigridEnv('MiniGrid-DoorKey-16x16-v0', action_failure_prob=0.2)
 
-#agent_type = "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>"
-agent_type = "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>"
+agent_type = "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>"
+#agent_type = "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>"
 
 env_seed = 24 # last done was 15
 budget = 10 * 16 * 50

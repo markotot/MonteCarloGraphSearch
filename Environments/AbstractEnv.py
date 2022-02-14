@@ -1,9 +1,10 @@
+import gym
 from gym import Env
 import numpy as np
 
-class AbstractEnv:
+class AbstractEnv():
 
-    #forward_model_calls = 0
+    forward_model_calls = 0
 
     def __init__(self, env: Env, action_failure_prob=0, seed=42):
 
@@ -23,13 +24,13 @@ class AbstractEnv:
         self.reset()
 
     def step(self, action, action_failure_prob=None, failed_action=None):
-        #AbstractEnv.forward_model_calls += 1
+        AbstractEnv.forward_model_calls += 1
         self.action = action    # Save the original action
 
         if self.is_stochastic:  # If the env is stochastic check if action should fail
             if action_failure_prob is None:  # If the chance is not given, determine it here
                 action_failure_prob = self.random.random_sample()
-                failed_action = self.random.choice(range(self.action_space.n))
+                #action = self.random.choice(range(self.action_space.n))
 
             if action_failure_prob < self.action_failure_prob:  # If the action should fail, swap it here
                 #action = failed_action
@@ -49,8 +50,6 @@ class AbstractEnv:
         self.done = None
         self.reward = None
         self.info = None
-        print("FMC reset")
-        #AbstractEnv.forward_model_calls = 0
 
     def render(self):
         self.env.render()

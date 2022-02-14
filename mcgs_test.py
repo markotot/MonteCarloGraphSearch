@@ -107,7 +107,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-16x16-v0'
+    env_name = 'MiniGrid-DoorKey-8x8-v0'
     #env_name = 'MiniGrid-Empty-16x16-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
@@ -116,16 +116,15 @@ if __name__ == "__main__":
     # 35 hard
     # 121 very hard
 
-    # TODO: TEST EXCEPTION WITH A_S:0 ENV_S:19
-    action_failure_prob = 0.2
+    action_failure_prob = 0.0
 
-    #agent_seeds = range(0, 10)
-    agent_seeds = [0]
-    env_seeds = [19]
-    #env_seeds = [35] #, 109, 3, 35, 121]
+    agent_seeds = range(27, 30)
+    #agent_seeds = [0]
+    #env_seeds = range(40, 50)
+    env_seeds = [121] #, 109, 3, 35, 121]
     agent_configs = [
-        #"AgentConfig/mcgs_0.yaml",
-        "AgentConfig/mcgs_1.yaml",
+        "AgentConfig/mcgs_0.yaml",
+        #"AgentConfig/mcgs_1.yaml",
         #"AgentConfig/mcgs_2.yaml",
         #"AgentConfig/mcgs_3.yaml",
         #"AgentConfig/mcgs_4.yaml",
@@ -168,7 +167,7 @@ if __name__ == "__main__":
                                    env_seed=env_seed,
                                    action_failure_prob=action_failure_prob,
                                    agent_seed=agent_seed,
-                                   verbose=True)
+                                   verbose=False)
 
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
                 Logger.save_experiment_metrics(agent_config, metrics_data_frame)
