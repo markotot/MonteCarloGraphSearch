@@ -33,7 +33,7 @@ class Node:
 
     def uct_value(self):
 
-        c = 0.001
+        c = 1
         mean = self.value / self.visits
         ucb = c * sqrt(log(self.parent.visits if self.parent is not None else 1 + 1) / self.visits)
         return mean + ucb
@@ -75,7 +75,7 @@ class MCTSAgent(AbstractAgent):
 
         self.node_counter = 0
         self.edge_counter = 0
-
+        self.steps = 0
         self.episodes = config['episodes']
         self.num_rollouts = config['num_rollouts']
         self.rollout_depth = config['rollout_depth']
@@ -88,7 +88,7 @@ class MCTSAgent(AbstractAgent):
         self.forward_model_calls = 0
 
     def plan(self, draw_graph=True):
-
+        self.steps += 1
         iterations = trange(self.episodes, leave=True)
         iterations.set_description(
             f"Total: {str(len(self.graph.graph.nodes))}")
@@ -200,7 +200,7 @@ class MCTSAgent(AbstractAgent):
     def add_node(self, node):
         Logger.log_graph_data(node.observation)
         self.graph.add_node(node)
-        self.novelty_stats.update_posterior(node.observation)
+        self.novelty_stats.update_posterior(node.observation, self.steps)
 
     def select_child(self, node, criteria="uct"):
 

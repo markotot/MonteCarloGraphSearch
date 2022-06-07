@@ -10,7 +10,9 @@ from Agents.MCGS.MCGSAgent import MCGSAgent
 
 from Environments.MyMinigridEnv import MyMinigridEnv
 from Environments.CustomDoorKeyEnv import CustomDoorKey
+from Gym_Environments.AbstractGymEnv import MyDoorKeyEnv
 from Utils.Logger import Logger, plot_images
+
 
 #TODO: Differences to Go-Explore
 #   1) Propagating novelty bonus
@@ -65,7 +67,7 @@ def create_environment(env_name, action_failure_prob, env_seed):
 def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, verbose=True):
 
     agent_config = load_agent_configuration(agent_config_path)
-    env = create_environment(env_name=env_name, action_failure_prob=action_failure_prob, env_seed=env_seed)
+    env = MyDoorKeyEnv(size=16, action_failure_prob=action_failure_prob, seed=env_seed)
 
     Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
     agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
@@ -92,7 +94,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 
     Logger.log_data(f"Game finished (Total nodes: {agent.novelty_stats.total_data_points})")
     Logger.close()
-    agent.graph.save_graph("graph")
+    agent.graph.save_graph(f"Data/{env_seed}_{agent_seed}")
 
     plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward, verbose)
 
@@ -108,7 +110,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 if __name__ == "__main__":
 
     env_name = 'MiniGrid-DoorKey-16x16-v0'
-    #env_name = 'MiniGrid-Empty-16x16-v0'
+    #env_name = 'MiniGrid-Empty-8x8-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
     # 109 medium
@@ -120,8 +122,7 @@ if __name__ == "__main__":
 
     #agent_seeds = range(27, 30)
     agent_seeds = [0]
-    #env_seeds = range(40, 50)
-    env_seeds = [121] #, 109, 3, 35, 121]
+    env_seeds = range(180, 200)
     agent_configs = [
         "AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",
@@ -167,7 +168,7 @@ if __name__ == "__main__":
                                    env_seed=env_seed,
                                    action_failure_prob=action_failure_prob,
                                    agent_seed=agent_seed,
-                                   verbose=True)
+                                   verbose=False)
 
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
                 Logger.save_experiment_metrics(agent_config, metrics_data_frame)

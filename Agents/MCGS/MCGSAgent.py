@@ -265,13 +265,13 @@ class MCGSAgent(AbstractAgent):
         cum_reward = 0
         path = []
         rollout_env = deepcopy(env)
-        rollout_env.step(action_to_node, action_failure_probabilities[0], failed_action_list[0])
+        rollout_env.stochastic_step(action_to_node, action_failure_probabilities[0], failed_action_list[0])
         self.forward_model_calls += 1
         self.remaining_budget -= 1
 
         previous_observation = rollout_env.get_observation()
         for idx, action in enumerate(action_list):
-            state, r, done, _ = rollout_env.step(action, action_failure_probabilities[idx + 1], failed_action_list[idx + 1])
+            state, r, done, _ = rollout_env.stochastic_step(action, action_failure_probabilities[idx + 1], failed_action_list[idx + 1])
             observation = rollout_env.get_observation()
             self.forward_model_calls += 1
             self.remaining_budget -= 1

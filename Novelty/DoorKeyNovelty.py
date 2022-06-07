@@ -8,8 +8,11 @@ class DoorKeyNovelty(AbstractNovelty):
 
         super().__init__(config, agent)
 
-        self.x_pos = [0] * agent.env.env.width
-        self.y_pos = [0] * agent.env.env.height
+        # self.x_pos = [0] * agent.env.env.width
+        # self.y_pos = [0] * agent.env.env.height
+
+        self.x_pos = [0] * agent.env.width
+        self.y_pos = [0] * agent.env.height
         self.rotation = [0] * 4
         self.agent_carry = {None: 0, 'key': 0}
         self.door_open = {True: 0, False: 0}

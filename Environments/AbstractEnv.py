@@ -23,7 +23,7 @@ class AbstractEnv():
         self.info = None
         self.reset()
 
-    def step(self, action, action_failure_prob=None, failed_action=None):
+    def stochastic_step(self, action, action_failure_prob=None, failed_action=None):
         AbstractEnv.forward_model_calls += 1
         self.action = action    # Save the original action
 
@@ -36,6 +36,12 @@ class AbstractEnv():
                 #action = failed_action
                 action = 6 # No action
 
+        self.state, self.reward, self.done, self.info = self.env.step(action)   # Do the step
+        return self.state, self.reward, self.done, self.info
+
+    def step(self, action):
+        AbstractEnv.forward_model_calls += 1
+        self.action = action    # Save the original action
         self.state, self.reward, self.done, self.info = self.env.step(action)   # Do the step
         return self.state, self.reward, self.done, self.info
 
