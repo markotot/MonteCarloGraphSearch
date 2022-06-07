@@ -152,9 +152,7 @@ fabric.properties
 
 # Local txt files
 Results/
-Data/Graphs/
-Data/Processed/
-Data/Processed_OneHot/
+Data/
 
 /graph.gpickle
 /test_data.txt
