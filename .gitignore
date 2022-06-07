@@ -152,7 +152,7 @@ fabric.properties
 
 # Local txt files
 Results/
-
+Data/Graphs/
 /graph.gpickle
 /test_data.txt
 /test_graph.txt
