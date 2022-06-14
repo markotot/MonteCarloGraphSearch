@@ -1,32 +1,25 @@
 import concurrent.futures
 import math
+from Agents.MCGS.Graph import Graph
+import networkx as nx
+import numpy as np
+seed = 42
+config = {
+    'amplitude_factor': 0.1,
+    'noisy_min_value': 0.1,
+}
 
-PRIMES = [
-    1,2,3,4,5]
+graph = Graph(seed, config)
+graph.load_graph("../graph.gpickle")
 
-def is_prime(n, i):
+adj_mat = nx.adjacency_matrix(graph.graph)
+nodes = graph.graph.nodes
 
-    print(i)
-    if n < 2:
-        return False
-    if n == 2:
-        return True
-    if n % 2 == 0:
-        return False
+max_out = -1
+counter = 0
+for n in nodes:
+    curr_out = graph.graph.in_degree[n]
+    if curr_out > 1:
+        counter += 1
 
-    sqrt_n = int(math.floor(math.sqrt(n)))
-    for i in range(3, sqrt_n + 1, 2):
-        if n % i == 0:
-            return False
-    return True
-
-def main():
-
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        results = executor.map(is_prime, [2,3,4,5], [-1, -1, -1, -1, -1])
-
-        for result in results:
-            print(result)
-
-
-main()
+print(max_out, counter)

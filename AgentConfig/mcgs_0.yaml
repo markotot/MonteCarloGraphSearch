@@ -1,7 +1,7 @@
 episodes: 10
 num_rollouts: 1
 rollout_depth: 5
-budget_per_step: 8000
+budget_per_step: 2000
 noisy_frontier_selection: True
 amplitude_factor: 0.2
 noisy_min_value: 0.0001

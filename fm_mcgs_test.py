@@ -3,6 +3,7 @@ import yaml
 import time
 import datetime
 import pandas as pd
+import torch
 
 from tqdm import tqdm
 from Agents.MCGS.MCGSAgent import MCGSAgent
@@ -10,7 +11,10 @@ from Agents.MCGS.MCGSAgent import MCGSAgent
 
 from Environments.MyMinigridEnv import MyMinigridEnv
 from Environments.CustomDoorKeyEnv import CustomDoorKey
-from Gym_Environments.AbstractGymEnv import MyDoorKeyEnv
+from Gym_Environments.ForwardModelEnv import ForwardModelEnv
+from Agents.ForwardModel.models import NN_Forward_Model
+import torch.nn as nn
+
 from Utils.Logger import Logger, plot_images
 
 
@@ -63,11 +67,19 @@ def create_environment(env_name, action_failure_prob, env_seed):
     else:
         return MyMinigridEnv(env_name, action_failure_prob=action_failure_prob, seed=env_seed)
 
+def load_forward_model(device, input_size = 7, output_size = 6, hidden_size = 64):
+    model = NN_Forward_Model(input_size, output_size, hidden_size).to(device)
+    model.load_state_dict(torch.load("Agents/ForwardModel/model.ckpt"), strict=True)
 
-def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, verbose=True):
+    return model
+
+def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, collect=True, verbose=True):
 
     agent_config = load_agent_configuration(agent_config_path)
-    env = MyDoorKeyEnv(size=16, action_failure_prob=action_failure_prob, seed=env_seed)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = load_forward_model(device, input_size=56, output_size=6, hidden_size=128) if not collect else None
+    env = ForwardModelEnv(model=model, device=device, size=16, collect=collect, action_failure_prob=action_failure_prob, seed=env_seed)
 
     Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
     agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
@@ -86,16 +98,24 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     for i in range(100):
         action = agent.plan(draw_graph=False)
         state, reward, done, info = agent.act(action)
-        env.render()
+
         images.append(env.render())
         total_reward += reward
         if done:
             break
+
     end_time = time.time()
+
+    if collect:
+        env.save_data(f"Data/Transitions/{env_seed}_{agent_seed}")
+    else:
+        env.model_stats()
+
 
     Logger.log_data(f"Game finished (Total nodes: {agent.novelty_stats.total_data_points})")
     Logger.close()
-    agent.graph.save_graph(f"Data/{env_seed}_{agent_seed}")
+    agent.graph.save_graph(f"Data/Graphs/{env_seed}_{agent_seed}")
+
 
     plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward, verbose)
 
@@ -123,7 +143,7 @@ if __name__ == "__main__":
 
     #agent_seeds = range(27, 30)
     agent_seeds = [0]
-    env_seeds = range(180, 200)
+    env_seeds = range(45, 50)
     agent_configs = [
         "AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",

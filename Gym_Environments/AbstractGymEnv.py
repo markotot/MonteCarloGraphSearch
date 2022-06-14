@@ -109,4 +109,60 @@ class MyDoorKeyEnv(DoorKeyEnv):
 
         return tuple([agent_pos_x, agent_pos_y, agent_dir, agent_carry] + doors_open + doors_locked + grid)
 
+    def get_local_surrounding(self, sight=1):
 
+        surrounding = np.empty((2 * sight + 1, 2 * sight + 1), dtype='str')
+
+        player_column = self.agent_pos[0]
+        player_row = self.agent_pos[1]
+        grid = np.reshape(self.grid.grid, (self.height, self.width))
+
+        row = 0
+        column = 0
+        for i in range(player_row - sight, player_row + sight + 1):
+            for j in range(player_column - sight, player_column + sight + 1):
+
+                if i < 0 or i >= self.height or j < 0 or j >= self.width:
+                    surrounding[row][column] = "none"
+                else:
+                    surrounding[row][column] = 'empty' if grid[i][j] is None else grid[i][j].type
+                column += 1
+
+            column = 0
+            row += 1
+
+        return surrounding
+
+    def get_local_surrounding_processed(self, sight=1):
+
+        surrounding = np.zeros((2 * sight + 1, 2 * sight + 1), dtype=int)
+
+        player_column = self.agent_pos[0]
+        player_row = self.agent_pos[1]
+        grid = np.reshape(self.grid.grid, (self.height, self.width))
+
+        row = 0
+        column = 0
+        for i in range(player_row - sight, player_row + sight + 1):
+            for j in range(player_column - sight, player_column + sight + 1):
+
+                if i < 0 or i >= self.height or j < 0 or j >= self.width:
+                    surrounding[row][column] = -1
+                else:
+                    element = 'empty' if grid[i][j] is None else grid[i][j].type
+                    if element == "empty":
+                        surrounding[row][column] = 0
+                    elif element == "wall":
+                        surrounding[row][column] = 1
+                    elif element == "key":
+                        surrounding[row][column] = 2
+                    elif element == "door":
+                        surrounding[row][column] = 3
+                    elif element == "goal":
+                        surrounding[row][column] = 4
+                column += 1
+
+            column = 0
+            row += 1
+
+        return surrounding
