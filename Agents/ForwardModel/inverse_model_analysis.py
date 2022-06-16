@@ -121,28 +121,29 @@ def print_analysis():
                       index=['cor', 'incorrect', 'inc_cor', 'inc_unc'])
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
         print(df)
-
+    print(f"\nTotal correct: {np.sum(predictions[:, 0])}\tTotal incorrect: {np.sum(predictions[:, 1])}")
     print("\n")
     df = pd.DataFrame(np.array(incorrectly_predicted_features),
                       columns=["agent_x", "agent_y", "rot", "has_key", "door_open", "door_locked"],
-                      index=['correlated features', 'uncorrelated features'])
+                      index=['cor_feat', 'uncor_feat'])
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
         print(df)
 
-    print(f"Impactful actions: {impactful_actions}\t\t Total: {np.sum(impactful_actions)}")
-    print(f"Obsolete actions: {obsolete_actions}\t\t Total: {np.sum(obsolete_actions)}")
+    print("\n")
+    print(f"Impactful actions: {impactful_actions}\t\tTotal: {np.sum(impactful_actions)}")
+    print(f"Obsolete actions: {obsolete_actions}\t\tTotal: {np.sum(obsolete_actions)}")
 
 
 torch.manual_seed(0)
 data_set = Gridworld_Local_SAS_Dataset(sight=3, val=True)
 data_set_size = 10000
-# validation_set, test_set = random_split(data_set, [data_set_size, len(data_set) - data_set_size])
-# validation_loader = DataLoader(validation_set, batch_size=1, shuffle=True)
+validation_set, test_set = random_split(data_set, [data_set_size, len(data_set) - data_set_size])
+validation_loader = DataLoader(validation_set, batch_size=1, shuffle=True)
 validation_loader = DataLoader(data_set, batch_size=1, shuffle=True)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 input_size = data_set.x.shape[1]
 output_size = data_set.y.shape[1]
-hidden_size = 64
+hidden_size = 96
 model = NN_Forward_Model(input_size, output_size, hidden_size).to(device)
 model.load_state_dict(torch.load("model.ckpt"), strict=True)
 

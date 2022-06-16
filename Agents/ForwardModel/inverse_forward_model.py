@@ -8,7 +8,7 @@ if __name__ == "__main__":
     torch.manual_seed(0)
 
     data_set = Gridworld_Local_SAS_Dataset(sight=3, val=False)
-    data_set_size = 50000
+    data_set_size = 200000
 
     train_set, test_set = random_split(data_set, [data_set_size, len(data_set) - data_set_size])
     train_loader = DataLoader(train_set, batch_size=64, shuffle=True)
@@ -18,14 +18,18 @@ if __name__ == "__main__":
     input_size = data_set.x.shape[1]
     output_size = data_set.y.shape[1]
 
-    hidden_size = 64
+    hidden_size = 96
     learning_rate = 0.0001
-    num_epochs = 4000
+    weight_decay = 0.0001
+    num_epochs = 2000
 
     model = NN_Forward_Model(input_size, output_size, hidden_size).to(device)
-    #critetion = nn.CrossEntropyLoss()
+
+    model.load_state_dict(torch.load("model.ckpt"), strict=True)
+    weight_decay = 0
+
     critetion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     n_total_steps = len(train_loader)
 
@@ -62,5 +66,6 @@ if __name__ == "__main__":
                 epoch_test_loss += loss.item()
 
             print(f"Epoch: {epoch}\t Train loss: {epoch_train_loss / len(train_loader)}\t Test loss: {epoch_test_loss / len(test_loader)}")
-
+        if epoch % 1000 == 0:
+            torch.save(model.state_dict(), "model_train.ckpt")
     torch.save(model.state_dict(), "model.ckpt")
