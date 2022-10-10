@@ -16,7 +16,7 @@ from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
 from rl_agents.trainer.monitor import MonitorV2
 
-from Environments.metrics import Metrics
+from Environments.MinigridLoggerMetrics import MinigridMetrics
 from Environments.AbstractEnv import AbstractEnv
 
 logger = logging.getLogger(__name__)
@@ -145,18 +145,19 @@ class Evaluation(object):
             rewards = []
 
             for i in iterations:
-                images.append(self.monitor.render(mode='rgb_array', highlight=False))
+                MinigridMetrics.step_count = i
+                images.append(self.monitor.env.render())
 
                 # Step until a terminal step is reached
                 reward, terminal = self.step()
                 rewards.append(reward)
 
                 if terminal:
-                    Metrics.solved = True
-                    Metrics.solved_steps = (i + 1)
-                    Metrics.solved_nodes = len(self.agent.planner.nodes)
-                    Metrics.solved_fmc = AbstractEnv.forward_model_calls
-                    images.append(self.monitor.render(mode='rgb_array', highlight=False))
+                    MinigridMetrics.solved = True
+                    MinigridMetrics.solved_steps = (i + 1)
+                    MinigridMetrics.solved_nodes = len(self.agent.planner.nodes)
+                    MinigridMetrics.solved_fmc = AbstractEnv.forward_model_calls
+                    images.append(self.monitor.env.render())
                     break
             # End of episode
             self.after_all_episodes(self.episode, rewards)

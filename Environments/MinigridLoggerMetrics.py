@@ -6,6 +6,8 @@ from datetime import datetime
 
 class MinigridMetrics:
 
+    step_count = 1
+
     key_found = False
     key_found_fmc = -1
     key_found_nodes = -1

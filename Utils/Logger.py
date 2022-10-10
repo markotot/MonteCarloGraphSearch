@@ -141,10 +141,8 @@ def plot_images(number, images, reward, verbose):
 
     plt.imshow(np.concatenate(image_rows, 0))
     #plt.savefig(f"{Logger.directory_path + str(number)}.png", dpi=384)
-    if verbose:
-        plt.show()
-    else:
-        plt.close()
+
+    plt.show()
 
 
 

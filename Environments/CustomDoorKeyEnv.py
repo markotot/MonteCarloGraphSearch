@@ -1,10 +1,8 @@
-from copy import deepcopy
-
-import gym
-import numpy as np
-from gym_minigrid import minigrid
-from Environments.MyMinigridEnv import MyMinigridEnv
+import cv2
 from gym_minigrid.minigrid import *
+
+from Environments.MyMinigridEnv import MyMinigridEnv
+
 
 class CustomDoorKeyEnv(MiniGridEnv):
     """
@@ -23,6 +21,15 @@ class CustomDoorKeyEnv(MiniGridEnv):
             seed=seed,
         )
 
+    def set_ascii(self, ascii):
+        self.ascii = ascii
+
+    def render(self):
+        return super().render(mode='rgb_array', highlight=False)
+
+    def image_observation(self, size):
+        image = self.render()
+        return cv2.resize(image, dsize=(size, size), interpolation=cv2.INTER_CUBIC)
     def _gen_grid(self, width, height):
 
         # Create an empty grid

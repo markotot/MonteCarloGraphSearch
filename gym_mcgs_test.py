@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-import yaml
 import time
+import yaml
 import datetime
 import pandas as pd
 
@@ -53,21 +53,20 @@ from Utils.Logger import Logger, plot_images
 #   The Target node (best node changes due to rollouts)
 
 
+def get_size_from_name(env_name):
+    env_size = env_name.split("-")[2]
+    return int(env_size.split("x")[0])
+
+
 def load_agent_configuration(path):
     with open(path, 'r') as stream:
         return yaml.safe_load(stream)
 
-def create_environment(env_name, action_failure_prob, env_seed):
-    if "Custom" in env_name:
-        return CustomDoorKey(size=16)
-    else:
-        return MyMinigridEnv(env_name, action_failure_prob=action_failure_prob, seed=env_seed)
-
-
 def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, verbose=True):
 
     agent_config = load_agent_configuration(agent_config_path)
-    env = MyDoorKeyEnv(size=16, action_failure_prob=action_failure_prob, seed=env_seed)
+    size = get_size_from_name(env_name=env_name)
+    env = MyDoorKeyEnv(size=size, action_failure_prob=action_failure_prob, seed=env_seed)
 
     Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
     agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
@@ -86,7 +85,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     for i in range(100):
         action = agent.plan(draw_graph=False)
         state, reward, done, info = agent.act(action)
-        env.render()
+
         images.append(env.render())
         total_reward += reward
         if done:
@@ -97,7 +96,8 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     Logger.close()
     agent.graph.save_graph(f"Data/{env_seed}_{agent_seed}")
 
-    plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward, verbose)
+    if verbose:
+        plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward)
 
     metrics = agent.get_metrics()
     metrics.update(solved=total_reward > 0)
@@ -110,7 +110,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-16x16-v0'
+    env_name = 'MiniGrid-DoorKey-25x25-v0'
     #env_name = 'MiniGrid-Empty-8x8-v0'
     #env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
@@ -121,18 +121,18 @@ if __name__ == "__main__":
 
     action_failure_prob = 0.0
 
-    #agent_seeds = range(27, 30)
-    agent_seeds = [0]
-    env_seeds = range(180, 200)
+    agent_seeds = range(0, 1)
+    # agent_seeds = [0]
+    env_seeds = range(46, 47)
     agent_configs = [
         "AgentConfig/mcgs_0.yaml",
-        #"AgentConfig/mcgs_1.yaml",
-        #"AgentConfig/mcgs_2.yaml",
-        #"AgentConfig/mcgs_3.yaml",
-        #"AgentConfig/mcgs_4.yaml",
-        #"AgentConfig/mcgs_5.yaml",
-        #"AgentConfig/mcgs_6.yaml",
-        #"AgentConfig/mcgs_7.yaml",
+        # "AgentConfig/mcgs_1.yaml",
+        # "AgentConfig/mcgs_2.yaml",
+        # "AgentConfig/mcgs_3.yaml",
+        # "AgentConfig/mcgs_4.yaml",
+        # "AgentConfig/mcgs_5.yaml",
+        # "AgentConfig/mcgs_6.yaml",
+        # "AgentConfig/mcgs_7.yaml",
 
     ]
 

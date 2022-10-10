@@ -56,32 +56,35 @@ from Utils.Logger import Logger, plot_images
 #   Do continuous selection (UCB) instead of frontier
 #   The Target node (best node changes due to rollouts)
 
-
-def load_agent_configuration(path):
-    with open(path, 'r') as stream:
-        return yaml.safe_load(stream)
-
-def create_environment(env_name, action_failure_prob, env_seed):
-    if "Custom" in env_name:
-        return CustomDoorKey(size=16)
-    else:
-        return MyMinigridEnv(env_name, action_failure_prob=action_failure_prob, seed=env_seed)
-
-def load_forward_model(device, input_size = 7, output_size = 6, hidden_size = 64):
+def load_forward_model(device, input_size=7, output_size=6, hidden_size=64):
     model = NN_Forward_Model(input_size, output_size, hidden_size).to(device)
     model.load_state_dict(torch.load("Agents/ForwardModel/model.ckpt"), strict=True)
 
     return model
 
-def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, collect=True, verbose=True):
 
-    agent_config = load_agent_configuration(agent_config_path)
+def load_agent_configuration(path):
+    with open(path, 'r') as stream:
+        return yaml.safe_load(stream)
+
+
+def get_size_from_name(env_name):
+    env_size = env_name.split("-")[2]
+    return int(env_size.split("x")[0])
+
+
+def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, loop, collect=True, verbose=True):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = load_forward_model(device, input_size=56, output_size=6, hidden_size=128) if not collect else None
-    env = ForwardModelEnv(model=model, device=device, size=16, collect=collect, action_failure_prob=action_failure_prob, seed=env_seed)
+
+    size = get_size_from_name(env_name=env_name)
+    env = ForwardModelEnv(model=model, device=device, size=size, collect=collect,
+                          action_failure_prob=action_failure_prob, seed=env_seed)
 
     Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
+
+    agent_config = load_agent_configuration(agent_config_path)
     agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
 
     images = [env.render()]
@@ -95,7 +98,13 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
         plt.close()
 
     start_time = time.time()
-    for i in range(100):
+    for step in range(100):
+
+        loop.set_description(f"env:{env_seed} "
+                             f"agent_seed:{agent_seed} "
+                             f"step:{step} "
+                             f"agent_config:{agent_config_path}")
+
         action = agent.plan(draw_graph=False)
         state, reward, done, info = agent.act(action)
 
@@ -107,21 +116,20 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     end_time = time.time()
 
     if collect:
-        env.save_data(f"Data/Transitions/{env_seed}_{agent_seed}")
+        env.save_data(f"Data/Full_Transition/{env_seed}_{agent_seed}")
     else:
         env.model_stats()
-
 
     Logger.log_data(f"Game finished (Total nodes: {agent.novelty_stats.total_data_points})")
     Logger.close()
     agent.graph.save_graph(f"Data/Graphs/{env_seed}_{agent_seed}")
 
-
-    plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward, verbose)
+    if verbose:
+        plot_images(str(env_seed) + "_" + str(agent_seed), images, total_reward)
 
     metrics = agent.get_metrics()
     metrics.update(solved=total_reward > 0)
-    metrics.update(number_of_steps=i)
+    metrics.update(number_of_steps=step)
     metrics.update(time_elapsed=datetime.timedelta(seconds=int(end_time - start_time)))
     metrics.update(env_name=env_name)
     metrics.update(action_failure_prob=action_failure_prob)
@@ -141,9 +149,9 @@ if __name__ == "__main__":
 
     action_failure_prob = 0.0
 
-    #agent_seeds = range(27, 30)
-    agent_seeds = [0]
-    env_seeds = range(45, 50)
+    agent_seeds = range(0, 1)
+    # agent_seeds = [0]
+    env_seeds = range(90, 100)
     agent_configs = [
         "AgentConfig/mcgs_0.yaml",
         #"AgentConfig/mcgs_1.yaml",
@@ -182,13 +190,14 @@ if __name__ == "__main__":
     for agent_config in loop:
         for env_seed in env_seeds:
             for agent_seed in agent_seeds:
-                loop.set_description(f"env: {env_seed} agent_seed: {agent_seed} agent_config: {agent_config}")
                 experiment_metrics[f"{agent_config}_{env_seed}_{agent_seed}"] = \
                     run_experiment(agent_config_path=agent_config,
                                    env_name=env_name,
                                    env_seed=env_seed,
                                    action_failure_prob=action_failure_prob,
                                    agent_seed=agent_seed,
+                                   loop=loop,
+                                   collect=True,
                                    verbose=False)
 
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T

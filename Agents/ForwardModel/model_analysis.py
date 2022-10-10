@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader, random_split
 
+from train_forward_model import get_output_head
 from analysis_utils import *
 from datasets import *
 from models import *
@@ -7,34 +8,36 @@ from models import *
 torch.manual_seed(0)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-model_name = "fm_None_aNone_train"
+hidden_size = 128
+output_head = "symbolic"
+separate_action = None
+# output_head = None
+
+model_name = f"fm_{output_head}_a{separate_action}_train"
 file_name = f"trained_models/{model_name}_analysis.txt"
 file = open(file_name, mode="w", buffering=1)
 
-sight = 3
-hidden_size = 512
-
-# head = "world"
-head = None
 # input_head = "without_local"
 input_head = None
 
+sight = 3
 data_set_size = 1100
 
-data_set = Gridworld_Full_Transition_Dataset(sight=sight, preprocess=False, val=True, output_head=head)
+data_set = MinigridDataset(sight=sight, val=True)
 validation_set, test_set = random_split(data_set, [data_set_size, len(data_set) - data_set_size])
 
 validation_loader = DataLoader(validation_set, batch_size=1, shuffle=True)
-input_size = data_set.x.shape[1]
-output_size = data_set.y.shape[1]
+input_size = len(data_set[0][0][0]) + len(data_set[0][0][1]) + len(data_set[0][0][2])
+output_size = get_output_head(data_set[0][1], output_head=output_head).shape[0]
 
-model = NN_Forward_Model(input_size, output_size, hidden_size).to(device)
+model = NN_Separated_Forward_Model(input_size, output_size, hidden_size, device).to(device)
 model.load_state_dict(torch.load(f"trained_models/{model_name}.ckpt"), strict=True)
 
 i = 0
 for x, y in validation_loader:
-    x = x.to(device)
-    y = y.to(device)
+
+    y = get_output_head(y, output_head)
+    y = y.to(device, non_blocking=True)
 
     output = model(x)
 
@@ -43,22 +46,22 @@ for x, y in validation_loader:
     output_state = output.round().cpu().detach().numpy()[0]
     action = int(input_state[6])
 
-    calculate_obsolete_actions(input_state, label_state, action, output_head=head)
+    calculate_obsolete_actions(input_state, label_state, action, output_head=output_head)
     if action == confusion_matrix_action:
         calculate_confusion_matrix(output_state, label_state, feature_idx)
     calculate_correlated_features_prediction(output_state, label_state, action)
-    calculate_head_predictions(input_state, output_state, label_state, output_head=head, input_head=input_head)
+    calculate_head_predictions(input_state, output_state, label_state, output_head=output_head, input_head=input_head)
 
     if i % 100 == 0:
         print(f"Data samples processed: {i}")
     i += 1
 
 print_analysis(file)
-if head == "symbolic":
+if output_head == "symbolic":
     print_symbolic(file)
-elif head == "local":
+elif output_head == "local":
     print_local(file)
-elif head == "world":
+elif output_head == "world":
     print_world(file)
 else:
     print_symbolic(file)

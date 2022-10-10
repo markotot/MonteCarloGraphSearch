@@ -43,6 +43,7 @@ class AbstractEnv():
         AbstractEnv.forward_model_calls += 1
         self.action = action    # Save the original action
         self.state, self.reward, self.done, self.info = self.env.step(action)   # Do the step
+        self.render()
         return self.state, self.reward, self.done, self.info
 
     def random_step(self, disabled_actions=[]):

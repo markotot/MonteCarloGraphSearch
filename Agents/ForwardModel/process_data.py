@@ -1,8 +1,8 @@
 from os import listdir
 from os.path import isfile, join
 
-data_path = "../../Data/Transition_Validation/"
-output_path = "../../Data/Datasets/dataset_16x16_SSA_local_3_val.txt"
+data_path = "../../Data/Full_Transition/"
+output_path = "../../Data/Datasets/dataset_16x16_Full_Transition_val.txt"
 
 def remove_duplicates(data):
     for index in range(len(data) - 1, -1, -1):

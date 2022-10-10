@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader, random_split
 
+from Agents.ForwardModel.train_forward_model import get_output_head
 from analysis_utils import *
 from datasets import *
 from models import *
@@ -13,23 +14,25 @@ file = open(file_name, mode="w", buffering=1)
 
 sight = 3
 hidden_size = 512
-
-# head = "world"
-head = None
-# input_head = "without_local"
-input_head = None
-
 data_set_size = 1100
 
-data_set = Gridworld_Full_Transition_Dataset(sight=sight, preprocess=False, val=True, output_head=head)
+data_set = MinigridDataset(sight=sight, val=True, normalize=False)
 validation_set, test_set = random_split(data_set, [data_set_size, len(data_set) - data_set_size])
 
 validation_loader = DataLoader(validation_set, batch_size=1, shuffle=True)
 input_size = data_set.x.shape[1]
-output_size = data_set.y.shape[1]
 
-model = NN_Forward_Model(input_size, output_size, hidden_size).to(device)
-model.load_state_dict(torch.load(f"trained_models/{model_name}.ckpt"), strict=True)
+output_size_symbolic = get_output_head(data_set[0][1], output_head="symbolic").shape[0]
+model_symbolic = NN_Forward_Model(input_size, output_size_symbolic, hidden_size).to(device)
+model_symbolic.load_state_dict(torch.load(f"trained_models/{model_name}.ckpt"), strict=True)
+
+output_size_local = get_output_head(data_set[0][1], output_head="local").shape[0]
+model_local = NN_Forward_Model(input_size, output_size_local, hidden_size).to(device)
+model_local.load_state_dict(torch.load(f"trained_models/{model_name}.ckpt"), strict=True)
+
+output_size_world = get_output_head(data_set[0][1], output_head="world").shape[0]
+model_world = NN_Forward_Model(input_size, output_size_world, hidden_size).to(device)
+model_world.load_state_dict(torch.load(f"trained_models/{model_name}.ckpt"), strict=True)
 
 i = 0
 for x, y in validation_loader:

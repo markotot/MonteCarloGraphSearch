@@ -20,19 +20,23 @@ class ForwardModelEnv(MyDoorKeyEnv):
         self.action = action  # Save the original action
 
         previous_observation = self.observation()
-        surroundings = self.get_local_surrounding_processed(sight=3)
-
+        previous_surroundings = self.get_local_surrounding(sight=3)
+        previous_whole_map = self.process_grid()
         self.state, self.reward, self.done, self.info = super().step(action)  # Do the step
         observation = self.observation()
+        surroundings = self.get_local_surrounding(sight=3)
+        whole_map = self.process_grid()
 
         if self.collect:
-            self.collect_data(previous_observation, observation, action, surroundings)
+            self.collect_data(previous_observation, observation, action,
+                              previous_surroundings, surroundings,
+                              previous_whole_map, whole_map)
         else:
-            self.model_step(previous_observation, action, surroundings, observation)
+            self.model_step(previous_observation, observation, action, previous_surroundings, surroundings)
 
         return observation, self.reward, self.done, self.info
 
-    def model_step(self, previous_observation, action, surroundings, label_observation):
+    def model_step(self, previous_observation, label_observation, action, previous_surroundings, surroundings):
 
         x = [
             previous_observation[0],
@@ -55,6 +59,8 @@ class ForwardModelEnv(MyDoorKeyEnv):
             int(label_observation[5] is True),
         ]
 
+        raise NotImplementedError  # model has been changed
+
         x = torch.tensor(x).type(torch.FloatTensor).to(self.device)
         output = self.model(x)
         model_observation = output.round().cpu().detach().numpy()
@@ -71,7 +77,7 @@ class ForwardModelEnv(MyDoorKeyEnv):
         print(f"Correct predictions: {ForwardModelEnv.correct_predictions}")
         print(f"Incorrect predictions: {ForwardModelEnv.incorrect_predictions}")
 
-    def collect_data(self, state, next_state, action, surroundings):
+    def collect_data(self, state, next_state, action, previous_surroundings, surroundings, previous_whole_map, whole_map):
 
         x = [
             state[0],
@@ -80,7 +86,6 @@ class ForwardModelEnv(MyDoorKeyEnv):
             int(state[3] is not None),
             int(state[4] is True),
             int(state[5] is True),
-            action,
         ]
 
         y = [
@@ -90,22 +95,43 @@ class ForwardModelEnv(MyDoorKeyEnv):
             int(next_state[3] is not None),
             int(next_state[4] is True),
             int(next_state[5] is True),
-            action,
         ]
 
         surroundings = surroundings.flatten()
         surroundings_string = ""
         for element in surroundings:
             surroundings_string += ", " + str(element)
-        ForwardModelEnv.data.append((x, y, [action], surroundings_string))
+
+        previous_surroundings = previous_surroundings.flatten()
+        previous_surroundings_string = ""
+        for element in previous_surroundings:
+            previous_surroundings_string += ", " + str(element)
+
+        whole_map = whole_map.flatten()
+        whole_map_string = ""
+        for element in whole_map:
+            whole_map_string += ", " + str(element)
+
+        previous_whole_map = previous_whole_map.flatten()
+        previous_whole_map_string = ""
+        for element in previous_whole_map:
+            previous_whole_map_string += ", " + str(element)
+
+        ForwardModelEnv.data.append((x, y, [action],
+                                     previous_surroundings_string, surroundings_string,
+                                     previous_whole_map_string, whole_map_string))
 
 
     def save_data(self, file_path):
         f = open(file_path, "w")
         for data_point in ForwardModelEnv.data:
             features = data_point[0] + data_point[1] + data_point[2]
-            surroundings = data_point[3]
-            processed_data_point = str(features)[1:-1] + surroundings
+            previous_surroundings = data_point[3]
+            surroundings = data_point[4]
+            previous_whole_map = data_point[5]
+            whole_map = data_point[6]
+
+            processed_data_point = str(features)[1:-1] + previous_surroundings + surroundings + previous_whole_map + whole_map
             f.write(processed_data_point + "\n")
         f.close()
         ForwardModelEnv.data = []

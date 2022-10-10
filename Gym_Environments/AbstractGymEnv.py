@@ -7,17 +7,18 @@ class MyDoorKeyEnv(DoorKeyEnv):
     """
     Environment with a door and key, sparse reward
     """
-
+    forward_model_calls = 0
     def __init__(self, size=8, action_failure_prob=0, seed=42):
         super().__init__(size)
         super().seed(seed)
+
         self.action_failure_prob = action_failure_prob
         self.is_stochastic = self.action_failure_prob > 0
-        self.seed = seed
-        # self.env = env
+
         self.env_type = EnvType.DoorKey
-        self.random = np.random.RandomState(self.seed)
+        self.random = np.random.RandomState(seed)
         self.name = "GymDoorkey"
+
         self.action = None
         self.state = None
         self.reward = None
@@ -31,6 +32,7 @@ class MyDoorKeyEnv(DoorKeyEnv):
         self.state, self.reward, self.done, self.info = super().step(action)  # Do the step
 
         observation = self.observation()
+        MyDoorKeyEnv.forward_model_calls += 1
         return observation, self.reward, self.done, self.info
 
     def stochastic_step(self, action, action_failure_prob=None, failed_action=None):
@@ -111,30 +113,6 @@ class MyDoorKeyEnv(DoorKeyEnv):
 
     def get_local_surrounding(self, sight=1):
 
-        surrounding = np.empty((2 * sight + 1, 2 * sight + 1), dtype='str')
-
-        player_column = self.agent_pos[0]
-        player_row = self.agent_pos[1]
-        grid = np.reshape(self.grid.grid, (self.height, self.width))
-
-        row = 0
-        column = 0
-        for i in range(player_row - sight, player_row + sight + 1):
-            for j in range(player_column - sight, player_column + sight + 1):
-
-                if i < 0 or i >= self.height or j < 0 or j >= self.width:
-                    surrounding[row][column] = "none"
-                else:
-                    surrounding[row][column] = 'empty' if grid[i][j] is None else grid[i][j].type
-                column += 1
-
-            column = 0
-            row += 1
-
-        return surrounding
-
-    def get_local_surrounding_processed(self, sight=1):
-
         surrounding = np.zeros((2 * sight + 1, 2 * sight + 1), dtype=int)
 
         player_column = self.agent_pos[0]
@@ -164,5 +142,24 @@ class MyDoorKeyEnv(DoorKeyEnv):
 
             column = 0
             row += 1
+
+        return surrounding
+
+    def process_grid(self):
+        grid = np.reshape(self.grid.grid, (self.height, self.width))
+        surrounding = np.zeros(grid.shape)
+        for i in range(self.height):
+            for j in range(self.width):
+                element = 'empty' if grid[i][j] is None else grid[i][j].type
+                if element == "empty":
+                    surrounding[i][j] = 0
+                elif element == "wall":
+                    surrounding[i][j] = 1
+                elif element == "key":
+                    surrounding[i][j] = 2
+                elif element == "door":
+                    surrounding[i][j] = 3
+                elif element == "goal":
+                    surrounding[i][j] = 4
 
         return surrounding
