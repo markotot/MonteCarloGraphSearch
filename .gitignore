@@ -160,3 +160,6 @@ Data/
 /test_reroute.txt
 /test_novel.txt
 /minigrid_dataset.npy
+/runs/
+/Agents/ForwardModel/runs/
+/Agents/ForwardModel/trained_models/
