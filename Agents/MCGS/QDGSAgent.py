@@ -152,7 +152,7 @@ class MCGSAgent(AbstractAgent):
     
     def check_reward_diversity(self):
       for n in self.graph.get_all_nodes_info():
-        if n.total_value>0:
+        if n.total_value > 0:
           return True 
 
 
@@ -166,7 +166,8 @@ class MCGSAgent(AbstractAgent):
         if len(selectable_nodes) == 0:
             return self.root_node
         else:
-            most_diverse_feature = self.diversity.freq_obs.loc[self.diversity.freq_obs.freq.idxmin()]
+            # most_diverse_feature = self.diversity.freq_obs.loc[self.diversity.freq_obs.freq.idxmin()]
+            most_diverse_feature = self.diversity.freq_obs.loc[self.diversity.freq_obs.freq.values.argmin()]
             #print("most_diverse_feature: ", most_diverse_feature['feature'], "-->", most_diverse_feature['obs'])
             diverse_nodes = [n for n in selectable_nodes if n.id[most_diverse_feature['feature']] == most_diverse_feature['obs']]
             

@@ -100,12 +100,13 @@ if __name__ == "__main__":
     env_name = 'MiniGrid-DoorKey-16x16-v0' 
     action_failure_prob = 0.0
     
-    agent_seeds = range(0,2)     
-    env_seeds = range(0,20)
+    agent_seeds = range(0, 1)
+    env_seeds = range(121,122)
 
 
     #'AgentConfig/qdgs_0.yaml', 'AgentConfig/qdgs_2.yaml', 'AgentConfig/qdgs_3.yaml',
-    agent_configs = ['AgentConfig/qdgs_4.yaml',  'AgentConfig/qdgs_1.yaml']
+    agent_configs = [#"'AgentConfig/qdgs_4.yaml',"
+                     'AgentConfig/qdgs_1.yaml']
     
     order_metrics = [
     'env_name',
@@ -141,7 +142,7 @@ if __name__ == "__main__":
                                    env_seed=env_seed,
                                    action_failure_prob=action_failure_prob,
                                    agent_seed=agent_seed,
-                                   verbose=True)
+                                   verbose=False)
     
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
                 Logger.save_experiment_metrics(agent_config, metrics_data_frame)
