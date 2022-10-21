@@ -1,20 +1,18 @@
-import matplotlib.pyplot as plt
-import time
-import yaml
 import datetime
+import time
+
+import matplotlib.pyplot as plt
 import pandas as pd
-
+import yaml
 from tqdm import tqdm
+
 from Agents.MCGS.MCGSAgent import MCGSAgent
-
-
-from Environments.MyMinigridEnv import MyMinigridEnv
-from Environments.CustomDoorKeyEnv import CustomDoorKey
+from Gym_Environments import MinigridLevelLayouts
 from Gym_Environments.AbstractGymEnv import MyDoorKeyEnv
 from Utils.Logger import Logger, plot_images
 
 
-#TODO: Differences to Go-Explore
+# TODO: Differences to Go-Explore
 #   1) Propagating novelty bonus
 
 # TODO: BUGS -
@@ -62,34 +60,44 @@ def load_agent_configuration(path):
     with open(path, 'r') as stream:
         return yaml.safe_load(stream)
 
-def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, verbose=True):
 
+def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, custom_level=None,
+                   verbose=True):
     agent_config = load_agent_configuration(agent_config_path)
     size = get_size_from_name(env_name=env_name)
-    env = MyDoorKeyEnv(size=size, action_failure_prob=action_failure_prob, seed=env_seed)
+    env = MyDoorKeyEnv(size=size, action_failure_prob=action_failure_prob, seed=env_seed, ascii=custom_level[0] if custom_level is not None else None)
 
-    Logger.setup(env_info=env.name, path=f"{env_seed}_{agent_seed}")
+    path = f"{env_seed}_{agent_seed}" if custom_level is None else f"{custom_level[1]}_{agent_seed}"
+    Logger.setup(env_info=env.name, file_name=path)
     agent = MCGSAgent(env, seed=agent_seed, config=agent_config, verbose=verbose)
 
     images = [env.render()]
     total_reward = 0
 
+    plt.imshow(images[0])
+    plt.show()
+    plt.close()
     if verbose:
         env.get_action_list()
         print(agent.info())
-        plt.imshow(images[0])
-        plt.show()
-        plt.close()
 
     start_time = time.time()
+
+    #  planning loop
     for i in range(100):
-        action = agent.plan(draw_graph=False)
+        action = agent.plan(draw_graph=True)
         state, reward, done, info = agent.act(action)
 
         images.append(env.render())
+
+        # plt.imshow(images[-1])
+        # plt.show()
+        # plt.close()
+
         total_reward += reward
         if done:
             break
+
     end_time = time.time()
 
     Logger.log_data(f"Game finished (Total nodes: {agent.novelty_stats.total_data_points})")
@@ -110,30 +118,24 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 
 if __name__ == "__main__":
 
-    env_name = 'MiniGrid-DoorKey-16x16-v0'
-    #env_name = 'MiniGrid-Empty-8x8-v0'
-    #env_name = 'Custom-DoorKey-16x16-v0'
+    # env_name = 'MiniGrid-DoorKey-25x25-v0'
+    env_name = 'MiniGrid-DoorKey-8x8-v0'
+    # env_name = 'Custom-DoorKey-16x16-v0'
     # 7 easy
     # 109 medium
     # 3 medium
     # 35 hard
     # 121 very hard
 
+    # custom_level = MinigridLevelLayouts.two_ways16
+    custom_level = None
     action_failure_prob = 0.0
 
     agent_seeds = range(0, 1)
     # agent_seeds = [0]
-    env_seeds = range(121, 122)
+    env_seeds = range(0, 1)
     agent_configs = [
         "AgentConfig/mcgs_0.yaml",
-        # "AgentConfig/mcgs_1.yaml",
-        # "AgentConfig/mcgs_2.yaml",
-        # "AgentConfig/mcgs_3.yaml",
-        # "AgentConfig/mcgs_4.yaml",
-        # "AgentConfig/mcgs_5.yaml",
-        # "AgentConfig/mcgs_6.yaml",
-        # "AgentConfig/mcgs_7.yaml",
-
     ]
 
     order_metrics = [
@@ -163,14 +165,15 @@ if __name__ == "__main__":
         for env_seed in env_seeds:
             for agent_seed in agent_seeds:
                 loop.set_description(f"env: {env_seed} agent_seed: {agent_seed} agent_config: {agent_config}")
-                experiment_metrics[f"{agent_config}_{env_seed}_{agent_seed}"] = \
+                experiment_metrics[
+                    f"{agent_config}_{env_seed if custom_level is None else custom_level[1]}_{agent_seed}"] = \
                     run_experiment(agent_config_path=agent_config,
                                    env_name=env_name,
                                    env_seed=env_seed,
                                    action_failure_prob=action_failure_prob,
                                    agent_seed=agent_seed,
+                                   custom_level=custom_level,
                                    verbose=False)
 
                 metrics_data_frame = pd.DataFrame(experiment_metrics, index=order_metrics).T
                 Logger.save_experiment_metrics(agent_config, metrics_data_frame)
-

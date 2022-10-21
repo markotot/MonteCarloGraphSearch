@@ -16,12 +16,12 @@ class Logger:
 
     logs_folder = "Results/Logs/"
     metrics_folder = "Results/Experiments/"
-    experiment_folder= ""
+    experiment_folder = ""
 
     directory_path = None
 
     @staticmethod
-    def setup(env_info, path):
+    def setup(env_info, file_name):
 
         if not os.path.isdir(Logger.logs_folder.split('/')[0]):
             os.mkdir(Logger.logs_folder.split('/')[0])
@@ -32,18 +32,17 @@ class Logger:
         if not os.path.isdir(Logger.logs_folder + env_info):
             os.mkdir(Logger.logs_folder + env_info)
 
-        current_time = datetime.now().strftime("%d_%h_%y_%H_%M_%S")
+        current_time = datetime.now().strftime("%y_%m_%d_%H.%M.%S")
         Logger.directory_path = Logger.logs_folder + env_info + "/" + current_time + "/"
         if not os.path.isdir(Logger.directory_path):
             os.mkdir(Logger.directory_path)
 
-        Logger.file = open(Logger.directory_path + path + "_data.txt", mode='w', buffering=1)
-        Logger.file_graph = open(Logger.directory_path + path + "_graph.txt", mode='w', buffering=1)
-        Logger.file_reroute = open(Logger.directory_path + path + "_reroute.txt", mode='w', buffering=1)
-        Logger.file_novel = open(Logger.directory_path + path + "_novel.txt", mode='w', buffering=1)
+        Logger.file = open(Logger.directory_path + file_name + "_data.txt", mode='w', buffering=1)
+        Logger.file_graph = open(Logger.directory_path + file_name + "_graph.txt", mode='w', buffering=1)
+        Logger.file_reroute = open(Logger.directory_path + file_name + "_reroute.txt", mode='w', buffering=1)
+        Logger.file_novel = open(Logger.directory_path + file_name + "_novel.txt", mode='w', buffering=1)
 
-
-        dt_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dt_now = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         Logger.file.write(f"Date: {dt_now} \n\n")
         Logger.file_graph.write(f"Date: {dt_now} \n\n")
         Logger.file_reroute.write(f"Date: {dt_now} \n\n")

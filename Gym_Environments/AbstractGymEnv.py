@@ -8,12 +8,16 @@ class MyDoorKeyEnv(DoorKeyEnv):
     Environment with a door and key, sparse reward
     """
     forward_model_calls = 0
-    def __init__(self, size=8, action_failure_prob=0, seed=42):
+    def __init__(self, size=8, action_failure_prob=0, seed=42, ascii=None):
+
+        self.ascii = ascii
+
         super().__init__(size)
         super().seed(seed)
 
         self.action_failure_prob = action_failure_prob
         self.is_stochastic = self.action_failure_prob > 0
+
 
         self.env_type = EnvType.DoorKey
         self.random = np.random.RandomState(seed)
@@ -34,6 +38,38 @@ class MyDoorKeyEnv(DoorKeyEnv):
         observation = self.observation()
         MyDoorKeyEnv.forward_model_calls += 1
         return observation, self.reward, self.done, self.info
+
+    def _gen_grid(self, width, height):
+
+        if self.ascii is None:
+            super()._gen_grid(width, height)
+        else:
+            # Create an empty grid
+            self.grid = Grid(width, height)
+
+            # Generate the surrounding walls
+            self.grid.wall_rect(0, 0, width, height)
+
+            for j, ascii_row in enumerate(self.ascii):
+                for i, object in enumerate(ascii_row):
+                    if object == 'Goal' or object == 'G':
+                        self.put_obj(Goal(), i, j)
+                    elif object == 'Player' or object == 'P':
+                        self.agent_pos = (i, j)
+                        self.agent_dir = 0
+                        self.grid.set(i, j, None)
+                    elif object == 'Wall' or object == 'W':
+                        self.grid.set(i, j, Wall())
+                    elif object == 'Key' or object == 'K':
+                        self.put_obj(Key('yellow'), i, j)
+                    elif object == 'Door' or object == 'D':
+                        self.put_obj(Door('yellow', is_locked=True), i, j)
+                    elif object == ' ':
+                        pass
+                    else:
+                        raise ValueError(f" {object} Received an unknown object")
+
+            self.mission = "Use the key to open the door and then get to the goal"
 
     def stochastic_step(self, action, action_failure_prob=None, failed_action=None):
         self.action = action  # Save the original action

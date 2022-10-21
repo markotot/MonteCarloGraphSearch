@@ -22,6 +22,7 @@ class Graph:
 
         self.amplitude_factor = config['amplitude_factor']
         self.noisy_min_value = config['noisy_min_value']
+        self.use_novelty_for_best_step = config['use_novelty_for_best_step']
         self.root_node = None
         self.new_nodes = []
         self.random = np.random.RandomState(seed)
@@ -132,12 +133,16 @@ class Graph:
         if len(selectable_nodes) > 0:
             best_node = selectable_nodes[0]
             best_node_value = best_node.value() + self.get_edge_info(best_node.parent, best_node).reward
+            if self.use_novelty_for_best_step:
+                best_node_value += best_node.novelty_value
         else:
             best_node = None
             best_node_value = None
 
         for n in selectable_nodes:
             selected_node_value = n.value() + self.get_edge_info(n.parent, n).reward
+            if self.use_novelty_for_best_step:
+                selected_node_value += n.novelty_value
             if best_node_value < selected_node_value:
                 best_node = n
                 best_node_value = selected_node_value
@@ -212,7 +217,8 @@ class Graph:
             if (node.novelty_value == 0 and node.value() == 0) or node not in self.frontier:
                 value_map[node.id] = ""
             else:
-                value_map[node.id] = str(round(node.novelty_value + node.value(), 2))
+                #value_map[node.id] = str(round(node.novelty_value + node.value(), 2))
+                value_map[node.id] =  ""
             node_size_map.append(30)
 
             if node == self.root_node:

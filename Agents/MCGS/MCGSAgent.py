@@ -360,19 +360,19 @@ class MCGSAgent(AbstractAgent):
 
         return new_node, reward
 
-    def get_optimal_action(self, node):
-
-        new_root_node, action = self.select_best_step(node)
-        new_root_node.chosen = True
-        new_root_node.parent = None
-
-        if self.graph.has_path(new_root_node, self.root_node):
-            self.graph.reroute_path(new_root_node, self.root_node)
-            self.root_node.action = self.graph.get_edge_info(self.root_node.parent, self.root_node).action
-
-        self.root_node = new_root_node
-
-        return action
+    # def get_optimal_action(self, node):
+    #
+    #     new_root_node, action = self.select_best_step(node)
+    #     new_root_node.chosen = True
+    #     new_root_node.parent = None
+    #
+    #     if self.graph.has_path(new_root_node, self.root_node):
+    #         self.graph.reroute_path(new_root_node, self.root_node)
+    #         self.root_node.action = self.graph.get_edge_info(self.root_node.parent, self.root_node).action
+    #
+    #     self.root_node = new_root_node
+    #
+    #     return action
 
     def set_root_node(self):
 
@@ -393,10 +393,11 @@ class MCGSAgent(AbstractAgent):
     def select_best_step(self, node, closest=False):
 
         best_node = None
-        if closest:
+
+        if closest:  # find the closest done node
             best_node = self.graph.get_closest_done_node(only_reachable=True)
 
-        if best_node is None:
+        if best_node is None:  # find the node with the highest reward + [novelty]
             best_node = self.graph.get_best_node(only_reachable=True)
 
         if best_node is None:
@@ -429,7 +430,7 @@ class MCGSAgent(AbstractAgent):
         episodes = "Episodes: " + str(self.episodes)
         rollouts = "Num rollouts: " + str(self.num_rollouts)
         depth = "Depth: " + str(self.rollout_depth)
-        seed = "Seed: " + str(self.env.seed)
+        seed = "Seed: " + str(self.seed)
         return [env_name, seed, episodes, rollouts, depth]
 
     def add_node(self, node):
