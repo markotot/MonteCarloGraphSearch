@@ -239,6 +239,7 @@ class MCGSAgent(AbstractAgent):
             self.useless_forward_model_calls += 1
             self.remaining_budget -= 1
             current_observation = expansion_env.get_observation()
+            self.check_metrics(current_observation, reward, done, 'Expansion')
 
             child, reward = self.add_new_observation(current_observation, node, action, reward, done)
             if child is not None:
@@ -287,7 +288,7 @@ class MCGSAgent(AbstractAgent):
             observation = rollout_env.get_observation()
             self.mcgs_forward_model_calls += 1
             self.remaining_budget -= 1
-            self.check_metrics(observation, r)
+            self.check_metrics(observation, r, done, 'mcgs_rollout')
 
             cum_reward += r
             path.append((previous_observation, observation, action, r, done))
@@ -448,16 +449,19 @@ class MCGSAgent(AbstractAgent):
         return edge
 
 
-    def check_metrics(self, obs, r):
+    def check_metrics(self, obs, r, done, location):
         if obs[3] == 'key':
             if self.key_subgoal == (-1, -1, -1):
-                self.key_subgoal = (self.node_counter, self.iterations, self.mcgs_forward_model_calls+self.useless_forward_model_calls+self.qds_forward_model_calls)
+                self.key_subgoal = (self.node_counter, self.iterations+1, self.mcgs_forward_model_calls+self.useless_forward_model_calls+self.qds_forward_model_calls)
+                print('Key found in ', location)
         if obs[4] == True:
             if self.door_subgoal == (-1, -1, -1):
-                self.door_subgoal = (self.node_counter, self.iterations, self.mcgs_forward_model_calls+self.useless_forward_model_calls+self.qds_forward_model_calls)
-        if r > 0:
+                self.door_subgoal = (self.node_counter, self.iterations+1, self.mcgs_forward_model_calls+self.useless_forward_model_calls+self.qds_forward_model_calls)
+                print('Door opened via ', location)
+        if (done) | (r > 0):
             if self.goal_found == (-1, -1, -1):
-                self.goal_found = (self.node_counter, self.iterations, self.mcgs_forward_model_calls+self.useless_forward_model_calls+self.qds_forward_model_calls)    
+                self.goal_found = (self.node_counter, self.iterations+1, self.mcgs_forward_model_calls+self.useless_forward_model_calls+self.qds_forward_model_calls)    
+                print('Goal found in ', location)
 
 
     def get_metrics(self):
