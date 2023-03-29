@@ -40,21 +40,27 @@ def initialize_global_variables(agent, env, verbose=True):
 
 
 def play_actions(agent, actions, total_reward, images, steps, display_output=True): 
+  misfired_actions = 0
   for a in range(0, len(actions)):
-    state, reward, done, info = agent.act(actions[a])
-    agent.steps += 1
-    total_reward += reward
+    while(actions[a] != agent.env.action):
+        state, reward, done, info = agent.act(actions[a])
+        if display_output:
+            plt.imshow(agent.env.render())
+            plt.show()
+        agent.steps += 1
+        total_reward += reward
+        #played_actions.append([actions[a], agent.env.action])
+        if actions[a] != agent.env.action:
+            misfired_actions +=1
+
+    agent.env.action = None
     images.append(agent.env.render())
     Logger.log_data(f"Current position: {str(agent.agent_position(agent.root_node)):<40}"
                     f"Action: {agent.env.agent_action_mapper(actions[a]):<12}")
 
-    if display_output:
-      plt.imshow(agent.env.render())
-      plt.show()
-      plt.close()
     if done:
       break
-  return done, total_reward, steps, images
+  return done, total_reward, steps, images, misfired_actions
 
 
 def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, agent_seed, custom_level=None,
@@ -70,7 +76,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     total_reward, steps, done, start_time, images = initialize_global_variables(agent, env, verbose=True)
 
     actions = agent.internal_plan(draw_graph=agent_config['display_graph'])
-    done, total_reward, steps, images = play_actions(agent, actions, total_reward, images, steps, display_output=agent_config['display_output'])
+    done, total_reward, steps, images, misfired_actions = play_actions(agent, actions, total_reward, images, steps, display_output=agent_config['display_output'])
     
     end_time = time.time()
     Logger.log_data(f"Game finished (Total nodes: {agent.node_counter})")
@@ -85,6 +91,7 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     metrics.update(time_elapsed=datetime.timedelta(seconds=int(end_time - start_time)))
     metrics.update(env_name=env_name)
     metrics.update(action_failure_prob=action_failure_prob)
+    metrics.update(misfired_actions=misfired_actions)
     return metrics
 
 
@@ -92,13 +99,13 @@ if __name__ == "__main__":
 
     env_name = 'MiniGrid-DoorKey-16x16-v0' 
     
-    agent_seeds = range(0,1)     
-    env_seeds = range(0,1)
-    env_seed = 0
+    agent_seeds = range(0, 2)     
+    env_seeds = range(0, 10)
+    #env_seed = 0
     
     #custom_levels = [MinigridLevelLayouts.middle16, MinigridLevelLayouts.four_rooms16, MinigridLevelLayouts.labyrinth16, MinigridLevelLayouts.labyrinth25] 
-    custom_level = MinigridLevelLayouts.four_rooms16
-    action_failure_prob = 0.0
+    custom_level = None #MinigridLevelLayouts.labyrinth25
+    action_failure_prob = 0.2
 
     agent_configs = ['AgentConfig/mcgs+qdrfn_0.yaml'] #, 'AgentConfig/mcgs+qdrfn_1.yaml', 'AgentConfig/mcgs+qdrfn_2.yaml'] 
     
@@ -120,7 +127,8 @@ if __name__ == "__main__":
     'goal_found_FMC',
     'total_nodes',
     'frontier_nodes',
-    'time_elapsed'
+    'time_elapsed',
+    'misfired_actions'
     ]
 
 

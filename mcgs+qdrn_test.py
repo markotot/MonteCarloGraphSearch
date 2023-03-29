@@ -79,16 +79,20 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
 
     start_time = time.time()
 
+    misfired_actions = 0
     #  planning loop
     for i in range(100):
         action = agent.plan(draw_graph=False)
         state, reward, done, info = agent.act(action)
+        print(action, agent.env.action)
+        if action != agent.env.action:
+            misfired_actions += 1
 
         images.append(env.render())
 
-        # plt.imshow(images[-1])
-        # plt.show()
-        # plt.close()
+        plt.imshow(images[-1])
+        plt.show()
+        plt.close()
 
         total_reward += reward
         if done:
@@ -109,21 +113,21 @@ def run_experiment(agent_config_path, env_name, action_failure_prob, env_seed, a
     metrics.update(time_elapsed=datetime.timedelta(seconds=int(end_time - start_time)))
     metrics.update(env_name=env_name)
     metrics.update(action_failure_prob=action_failure_prob)
+    metrics.update(misfired_actions=misfired_actions)
     return metrics
 
 
 if __name__ == "__main__":
 
     env_name = 'MiniGrid-DoorKey-16x16-v0' 
-    action_failure_prob = 0.0
     
-    agent_seeds = range(0,1)     
-    env_seeds = range(0,1)
+    agent_seeds = range(0,2)     
+    env_seeds = range(0,10)
     #env_seed = 0
     
     # custom_levels = [MinigridLevelLayouts.labyrinth25] #[MinigridLevelLayouts.four_rooms16, MinigridLevelLayouts.middle16, MinigridLevelLayouts.labyrinth16, None] 
     custom_level = None
-    action_failure_prob = 0.0
+    action_failure_prob = 0.2
 
     agent_configs = ['AgentConfig/mcgs+qdrn_0.yaml']
     
@@ -145,7 +149,8 @@ if __name__ == "__main__":
     'goal_found_FMC',
     'total_nodes',
     'frontier_nodes',
-    'time_elapsed'
+    'time_elapsed',
+    'misfired_actions'
     ]
 
 
